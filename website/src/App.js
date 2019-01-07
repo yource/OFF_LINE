@@ -7,18 +7,14 @@ import Edit from './pages/edit.js'
 import Test from './pages/test.js'
 import About from './pages/about.js'
 import axios from 'axios'
-const {
-  Header,
-  Content,
-} = Layout;
+const { Header, Content } = Layout;
 
 class App extends Component {
 
   constructor(props) {
     super(props);
     this.state = {
-      current: 'menu',
-      networkState: window.storage.getItem("networkState")
+      current: 'menu'
     }
   }
 

@@ -1,3 +1,6 @@
+import table1 from './table1.js'
+import table2 from './table2.js'
+
 var db = {};
 
 // 创建数据库
