@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import './add.css';
+import './edit.css';
 import { Form, Input, Button, Icon, message } from 'antd';
 import Mock from 'mockjs';
 import axios from 'axios';

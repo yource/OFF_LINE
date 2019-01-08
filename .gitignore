@@ -10,7 +10,7 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-/service/node_modules
-/service/src
+/server/node_modules
+/server/src
 /website/node_modules
 /website/build

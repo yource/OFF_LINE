@@ -7,6 +7,10 @@ import Edit from './pages/edit.js'
 import Test from './pages/test.js'
 import About from './pages/about.js'
 import axios from 'axios'
+
+import * as serviceWorker from './serviceWorker';
+serviceWorker.register();
+
 const { Header, Content } = Layout;
 
 class App extends Component {
@@ -14,7 +18,7 @@ class App extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      current: 'menu'
+      current: 'home'
     }
   }
 
