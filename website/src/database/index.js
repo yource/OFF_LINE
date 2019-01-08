@@ -1,84 +1,76 @@
-/**
- * 建里websocket连接
- * 创建indexedDB数据库和表
- * 拉去服务器数据存入indexedDB
- * 导出数据处理方法
+// import table1 from './table1.js'
+// import table2 from './table2.js'
+
+const websocketUrl = "ws://localhost:8888/admin";
+
+/** 
+ * 在线/离线 处理方法
  */
 
-import table1 from './table1.js'
-import table2 from './table2.js'
+window.storage.setItem("networkStatus", "unkonw");
 
-const heartbeatUrl = "ws://localhost:8888/heartbeat";
-const databaseUrl = "ws://localhost:8888/database";
-
-/** websocket心跳机制，用于检测是否在线 **/
-window.storage.setItem("networkStatus", "unknow");
-var heartbeat;
-const heartbeatInit = () => {
-    heartbeat = new WebSocket(heartbeatUrl);
-    heartbeat.onopen = () => {
-        window.storage.setItem("networkStatus", "online");
-        setTimeout(()=>{
-            heartbeat.send("try connect")
-        },500)
-    }
-
-    heartbeat.onerror = () => {
-        window.storage.setItem("networkStatus", "offline");
-        console.log("offline")
-    }
-
-    heartbeat.onmessage = () => {
-        window.storage.setItem("networkStatus", "online");
-    }
-
-    heartbeat.onclose = () => {
-        heartReconnect();
-    }
-}
-
-const heartReconnect = () => {
-    setTimeout(() => {
-        heartbeatInit()
-    }, 2000)
-}
-
-heartbeatInit();
-
-/** 用websocket进行数据同步 **/
-var websocket;
-var websocketSendData; // 当前正在向服务器同步的数据
-var asycStatus = "wait"; // 同步状态 wait/doing
-if ("WebSocket" in window) {
-    if (!window.dbWebsocket) {
-        websocket = new WebSocket("ws://localhost:8888/database");
-        websocket.onopen = onOpenWebsocket;
-        websocket.onclose = function (evt) {
-            console.log("database webscoket 关闭");
-        };
-        websocket.onmessage = onGetMessage;
-        websocket.onerror = function (evt) {
-            window.storage.setItem("networkStatus", "offline")
-        };
-    }
-} else {
-    console.log("浏览器不支持websocket")
-}
-
-// webscoket成功连接时
-function onOpenWebsocket() {
+const changeToOnline = ()=>{
     window.storage.setItem("networkStatus", "online");
-
 }
 
-// 接受websocket数据时
-function onGetMessage() {
-
+const changeToOffline = ()=>{
+    window.storage.setItem("networkStatus", "offline");
 }
 
+window.addEventListener("offline", function () {
+    changeToOffline();
+});
+
+/** 
+ * 建立websocket
+ * 检测服务器连接情况
+ * 接收服务器推送的数据改动 
+ */
+var wss;
+var heartbeat;
+var tryReconnect;
+const wsInit = () => {
+    wss = new WebSocket(websocketUrl);
+
+    wss.onopen = () => {
+        console.log("websocket connect success");
+        changeToOnline();
+        heartbeat = setInterval(() => {
+            wss.send("try connect")
+        }, 1000);
+    }
+
+    wss.onerror = () => {
+        wss.close();
+    }
+
+    wss.onmessage = (str) => {
+        console.log("websocket get message");
+    }
+
+    wss.onclose = () => {
+        console.log("websocket close");
+        if(heartbeat){
+            heartbeat = window.clearInterval(heartbeat);
+        }
+        changeToOffline();
+        wsReconnect();
+    }
+}
+
+const wsReconnect = () => {
+    tryReconnect = setTimeout(() => {
+        wss = null;
+        wsInit();
+    }, 10000)
+}
+
+wsInit();
+
+/**
+ * 创建数据库
+ */
 var db = {};
-
-// 创建数据库
 var database;
 var createDB = window.indexedDB.open("menusifu");
 

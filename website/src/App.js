@@ -8,8 +8,8 @@ import Test from './pages/test.js'
 import About from './pages/about.js'
 import axios from 'axios'
 
-import * as serviceWorker from './serviceWorker';
-serviceWorker.register();
+// import * as serviceWorker from './serviceWorker';
+// serviceWorker.register();
 
 const { Header, Content } = Layout;
 
