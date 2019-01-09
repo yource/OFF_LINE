@@ -28,9 +28,13 @@ class Test extends Component {
             let temp = {}
             temp['list|' + this.state.total] = [{
                 'id|+1': 0,
-                title: '@name',
-                time: '@datetime',
-                'content|3-10': ["@string('lower', 3, 10)"]
+                itemName: '@name',
+                price:'',
+                description:'',
+                thumbPath:'',
+                lastUpdatedBy:'',
+                lastUpdated: '@datetime',
+                'printerNames|3-10': ["@string('lower', 3, 10)"]
             }]
             let list = Mock.mock({ temp });
             this.setState({
@@ -93,7 +97,7 @@ class Test extends Component {
     }
 
     deleteDB() {
-        window.indexedDB.deleteDatabase('menusifu');
+        window.indexedDB.deleteDatabase('MENUSIFU');
     }
 
     render() {

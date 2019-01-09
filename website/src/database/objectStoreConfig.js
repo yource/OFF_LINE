@@ -6,43 +6,35 @@ import axios from 'axios';
 export default [{
     //表名
     name: "MENU",
-    //自动主键
-    autoIncrement:true,
+    //主键（可以不设置，默认为'id'）
+    keyPath:"id",
     //数据初始化方法（从服务器同步数据）
     init: (db,name) => {  
         axios.get("/menu").then((response) => {
-            var data = response.data;
-            console.log(name)
             // 存入单条数据
+            var data = response.data;
+            data.uid = "menu";
+            db.transaction([name], 'readwrite').objectStore(name).clear();
             var request = db.transaction([name], 'readwrite').objectStore(name).add(data);
-            request.onsuccess = (event)=> {
-                console.log(name+' 数据初始化成功');
-            };
-
-            request.onerror = (event)=> {
-                console.log(name+' 数据初始化失败');
-            };
-        }).catch((error) => {
-            console.log("get error",error)
-         })
+            console.log(name+"表 更新成功");
+        })
     }
 }, {
     name: "LIST",
-    //自定义主键
-    key: "uid",  
-    init: (db) => {
+    init: (db,name) => {
         axios.get("/list").then((response) => { 
-            var data = response.data.list;
             // 存入多条数据
-            var trans = db.transaction([this.name], 'readwrite');
+            var data = response.data.list;
+            db.transaction([name], 'readwrite').objectStore(name).clear();
+            var trans = db.transaction([name], 'readwrite');
             for (var i = 0; i < data.length; i++) {
-                trans.objectStore(this.name).add(data[i]);
+                trans.objectStore(name).add(data[i]);
             }
-        }).catch((error) => { })
+            console.log(name+"表 更新成功");
+        })
     }
 }, {
     name: "TEST",
-    key: "uid",
     init:()=>{}
 }]
 

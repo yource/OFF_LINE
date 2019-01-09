@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import './edit.css';
-import { Form, Input, Button, Icon, message } from 'antd';
+import { Form, Input, Button, Icon, message, Divider, Table } from 'antd';
 import Mock from 'mockjs';
 import axios from 'axios';
 
@@ -8,12 +8,18 @@ class Add extends Component {
 
     constructor(props) {
         super(props);
-        this.state = {
-            'id': Mock.Random.integer(100000, 999999),
-            title: "",
-            content: [],
-            time: Mock.Random.datetime()
-        }
+        this.state = Mock.mock({
+            'list|20': [{
+                'id|+1': 0,
+                itemName: '@word(5,12)',
+                price: 'integer(10,300)',
+                description: '@sentence(4,10)',
+                thumbPath: '@word(8,16)',
+                lastUpdatedBy: '@name',
+                lastUpdated: '@datetime',
+                'printerNames|3-10': ["@string('lower', 3, 10)"]
+            }]
+        });
     }
 
     componentDidMount() { }
@@ -32,35 +38,46 @@ class Add extends Component {
                 //     title: values.title
                 // });
                 this.state.title = values.title;
-                if (window.storage.getItem("networkState") === 0) {
-                    axios.post('/makeOrder', this.state).then((response) => {
-                        this.setState({
-                            'id': Mock.Random.integer(100000, 999999),
-                            title: "",
-                            content: [],
-                            time: Mock.Random.datetime()
-                        });
-                        message.success('提交成功');
-                    }).catch(function (error) {
-                        message.error('提交失败');
-                    });
-                } else {
-                    // 离线模式下存入indexedDB
-                    window.db.addListItem(this.state, () => {
-                        this.setState({
-                            'id': Mock.Random.integer(100000, 999999),
-                            title: "",
-                            content: [],
-                            time: Mock.Random.datetime()
-                        });
-                        message.success('离线存储成功');
-                    }, () => {
-                        message.error('离线存储失败');
-                    })
-                }
             }
         });
     }
+
+    columns = [{
+        title: 'id',
+        dataIndex: 'id',
+        width: 150,
+        render: id => (
+            <span>#{id}</span>
+        )
+    }, {
+        title: 'itemName',
+        dataIndex: 'itemName',
+    }, {
+        title: 'price',
+        dataIndex: 'price',
+    }, {
+        title: 'thumbPath',
+        dataIndex: 'thumbPath',
+    }, {
+        title: 'description',
+        dataIndex: 'description',
+    }, {
+        title: 'printerNames',
+        dataIndex: 'printerNames',
+        render: printerNames => (
+            <span>{printerNames.join(", ")}</span>
+        )
+    }, {
+        title: 'options',
+        width: 140,
+        render: (record) => (
+            <span>
+                <a href="javascript:;" >修改</a>
+                <Divider type="vertical" />
+                <a href="javascript:;" >删除</a>
+            </span>
+        )
+    }];
 
     render() {
         const formItemLayout = {
@@ -69,29 +86,32 @@ class Add extends Component {
         };
         const { getFieldDecorator } = this.props.form;
         return (
-            <div className="Add">
+            <div className="Edit">
                 <p>新增记录</p>
-                <Form onSubmit={this.handleSubmit.bind(this)}>
-                    <Form.Item label="id" {...formItemLayout}>
-                        <Input disabled value={this.state.id} />
-                    </Form.Item>
-                    <Form.Item label="title" {...formItemLayout}>
-                        {getFieldDecorator('title', {
-                            rules: [{ required: true, message: 'Please input title' }],
-                        })(
-                            <Input />
-                        )}
-                    </Form.Item>
-                    <Form.Item label="content" {...formItemLayout}>
-                        {this.state.content.map((item) => (
-                            <span style={{ marginRight: 8, border: '1px solid #ccc', borderRadius: 3, padding: '0 10px' }}>{item}</span>
-                        ))}
-                        <Icon type="plus-circle" className="addIcon" onClick={this.addContent.bind(this)} />
-                    </Form.Item>
-                    <Form.Item wrapperCol={{ span: 14, offset: 9 }}>
-                        <Button type="primary" htmlType="submit">提交</Button>
-                    </Form.Item>
-                </Form>
+                <div className="editForm">
+                    <Form onSubmit={this.handleSubmit.bind(this)}>
+                        <Form.Item label="id" {...formItemLayout}>
+                            <Input disabled  />
+                        </Form.Item>
+                        <Form.Item label="title" {...formItemLayout}>
+                            {getFieldDecorator('title', {
+                                rules: [{ required: true, message: 'Please input title' }],
+                            })(
+                                <Input />
+                            )}
+                        </Form.Item>
+                        <Form.Item label="content" {...formItemLayout}>
+                            
+                            <Icon type="plus-circle" className="addIcon"  />
+                        </Form.Item>
+                        <Form.Item wrapperCol={{ span: 14, offset: 9 }}>
+                            <Button type="primary" htmlType="submit">提交</Button>
+                        </Form.Item>
+                    </Form>
+                </div>
+                <div className="tableCon">
+                    <Table columns={this.columns} dataSource={this.state.list} rowKey="id" />
+                </div>
             </div>
         );
     }

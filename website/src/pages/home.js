@@ -41,8 +41,8 @@ class Home extends Component {
         <h2>二、流程示例</h2>
         <dl>
           <dt>1. 初始化</dt>
-          <dd>页面加载时，检测本地数据库和表，如果不存在则创建。创建之后向服务器请求数据，并存入indexedDB。</dd>
-          <dd>服务端的数据，存入时进行标记，actionFlag设为unchanged。</dd>
+          <dd>首次加载页面时，创建数据库创建和表，并向服务器请求数据存入indexedDB。</dd>
+          <dd>后续加载页面时，更新数据表。</dd>
           <dt>2. 前端新增数据</dt>
           <dd>在线状态下：先向服务器同步此改动，成功则将actionFlag改为unchanged，失败则将actionFlag改为new，再将此改动存入indexedDB。</dd>
           <dd>离线状态下：设置actionFlag为new。</dd>

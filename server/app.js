@@ -24,10 +24,14 @@ app.get('/test', function (req, res) {
 
 const listData = Mock.mock({
     'list|20': [{
-        'id|+1': 10,
-        title: '@name',
-        time: '@datetime',
-        'content|3-10': ["@string('lower', 3, 10)"]
+        'id|+1': 0,
+        itemName: '@word(5,12)',
+        price: 'integer(10,300)',
+        description: '@sentence(4,10)',
+        thumbPath: '@word(8,16)',
+        lastUpdatedBy: '@name',
+        lastUpdated: '@datetime',
+        'printerNames|3-10': ["@string('lower', 3, 10)"]
     }]
 });
 
@@ -36,7 +40,7 @@ app.get('/list', function (req, res) {
 })
 app.get('/menu', function (req, res) {
     console.log("send menu")
-    res.json(["aaa","bbb","ccc"]);
+    res.json(["aaa", "bbb", "ccc"]);
 })
 
 app.post('/editOrder', function (req, res) {
@@ -86,7 +90,7 @@ app.post('/deleteOrder', function (req, res) {
 const wss = new websocket.Server({ server });
 
 // 广播方法，向所有用户推送msg
-wss.broadcast = function broadcast(ws,msg) {
+wss.broadcast = function broadcast(ws, msg) {
     wss.clients.forEach(function each(client) {
         client.send(msg);
     });
@@ -94,7 +98,7 @@ wss.broadcast = function broadcast(ws,msg) {
 
 wss.on('connection', function connection(ws) {
     ws.send("websocket connect success");
-    ws.on('message', function(msg) {
+    ws.on('message', function (msg) {
         ws.send("connected");
     });
 });
