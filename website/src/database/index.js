@@ -1,106 +1,152 @@
-// import table1 from './table1.js'
-// import table2 from './table2.js'
+import axios from 'axios'
+import objectStores from './objectStoreConfig.js'
 
 const websocketUrl = "ws://localhost:8888/admin";
 
-/** 
- * 在线/离线 处理方法
- */
+// const websocketUrl = "ws://192.168.1.141:8080/cloudmenu/websocket/admin";
 
+/**
+ * 初始化数据库
+ */
+var db = {};
+var database = null;
+var updateDB = null;
+var dbVersion = 0;
+var openDB = window.indexedDB.open("menusifu");
+console.log(objectStores)
+
+openDB.onsuccess = (event) => {
+    database = event.target.result;
+    dbVersion = database.version;
+    db.database = event.target.result;
+    console.log('数据库打开成功， version: ' + dbVersion);
+    var needUpdate = false;
+    for (let i = 0; i < objectStores.length; i++) {
+        if (!database.objectStoreNames.contains(objectStores[i].name)) {
+            needUpdate = true;
+            break;
+        }
+    }
+    if (needUpdate) {
+        database.close();
+        openDB = null;
+        updateDB = window.indexedDB.open("menusifu", dbVersion + 1);
+        updateDB.onupgradeneeded = function (event) {
+            database = event.target.result;
+            db.database = event.target.result;
+            console.log('update onupgradeneeded');
+            var objectStore;
+            for (let i = 0; i < objectStores.length; i++) {
+                if (!database.objectStoreNames.contains(objectStores[i].name)) {
+                    objectStore = database.createObjectStore(objectStores[i].name, { keyPath: objectStores[i].key });
+                    objectStore.createIndex('actionFlag', 'actionFlag', { unique: false });
+                    console.log(objectStores[i].name + '表 新建成功');
+                    if (objectStores[i].init){
+                        objectStores[i].init(database, objectStores[i].name)
+                    }
+                }
+            }
+        };
+        updateDB.onerror = function () {
+            console.log("update error")
+        }
+    }
+};
+
+openDB.onupgradeneeded = (event) => {
+    database = event.target.result;
+    db.database = event.target.result;
+    var objectStore;
+    for (let i = 0; i < objectStores.length; i++) {
+        if (!database.objectStoreNames.contains(objectStores[i].name)) {
+            objectStore = database.createObjectStore(objectStores[i].name, { keyPath: objectStores[i].key });
+            objectStore.createIndex('actionFlag', 'actionFlag', { unique: false });
+            console.log(objectStores[i].name + '表 新建成功');
+            objectStores[i].init(database)
+        }
+    }
+};
+
+openDB.onerror = function (event) {
+    console.log('数据库打开失败');
+};
+
+// 向服务器推送本地改动
+const pushDatabase = () => {
+    console.log("正在推送数据...")
+    console.log(database.objectStoreNames);
+}
+
+// 标记 在线/离线
 window.storage.setItem("networkStatus", "unkonw");
 
-const changeToOnline = ()=>{
-    window.storage.setItem("networkStatus", "online");
-}
-
-const changeToOffline = ()=>{
-    window.storage.setItem("networkStatus", "offline");
-}
-
 window.addEventListener("offline", function () {
-    changeToOffline();
+    if (window.storage.getItem("networkStatus") !== "offline") {
+        window.storage.setItem("networkStatus", "offline");
+    }
 });
 
 /** 
  * 建立websocket
  * 检测服务器连接情况
- * 接收服务器推送的数据改动 
  */
 var wss;
 var heartbeat;
-var tryReconnect;
 const wsInit = () => {
     wss = new WebSocket(websocketUrl);
 
     wss.onopen = () => {
         console.log("websocket connect success");
-        changeToOnline();
+        window.storage.setItem("networkStatus", "online");
         heartbeat = setInterval(() => {
-            wss.send("try connect")
+            wss.send("check connect")
         }, 1000);
+        // 进行数据同步
+        setTimeout(() => {
+            if (database) {
+                pushDatabase();
+            } else {
+                console.log("indexDB未准备就绪")
+            }
+        }, 200)
     }
 
     wss.onerror = () => {
         wss.close();
     }
 
-    wss.onmessage = (str) => {
-        console.log("websocket get message");
-    }
+    wss.onmessage = (str) => { }
 
     wss.onclose = () => {
         console.log("websocket close");
-        if(heartbeat){
+        if (heartbeat) {
             heartbeat = window.clearInterval(heartbeat);
         }
-        changeToOffline();
+        if (window.storage.getItem("networkStatus") !== "offline") {
+            window.storage.setItem("networkStatus", "offline");
+        }
         wsReconnect();
     }
 }
 
 const wsReconnect = () => {
-    tryReconnect = setTimeout(() => {
+    setTimeout(() => {
         wss = null;
         wsInit();
     }, 10000)
 }
 
-wsInit();
+// wsInit();
 
-/**
- * 创建数据库
+/** 
+ * ajax替换方法
+ * 整合indexedDB操作
  */
-var db = {};
-var database;
-var createDB = window.indexedDB.open("menusifu");
 
-createDB.onsuccess = function (event) {
-    database = event.target.result;
-    db.database = database;
-    console.log('数据库打开成功');
-};
 
-createDB.onupgradeneeded = function (event) {
-    database = event.target.result;
-    db.database = database;
-    console.log('数据库新建成功');
-    // 新建表
-    var objectStore;
-    if (!database.objectStoreNames.contains('list')) {
-        objectStore = database.createObjectStore('list', { keyPath: 'id' });
-        objectStore.createIndex('title', 'title', { unique: false });
-        console.log('list表新建成功');
-    }
-    if (!database.objectStoreNames.contains('test')) {
-        objectStore = database.createObjectStore('test', { keyPath: 'id' });
-        objectStore.createIndex('title', 'title', { unique: false });
-        console.log('test表新建成功');
-    }
-};
 
-createDB.onerror = function (event) {
-    console.log('数据库创建失败');
-};
+
+
 
 // 新增多个数据
 db.addList = function (params) {

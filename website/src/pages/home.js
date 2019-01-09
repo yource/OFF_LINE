@@ -34,7 +34,7 @@ class Home extends Component {
       <div className="Home">
         <h1>OFF LINE 离线方案</h1>
         <h2>一、交互原则</h2>
-        <p>以indexedDB为中间媒介，前端操作indexedDB，服务器与indexedDB进行数据同步。</p>
+        <p>离线状态下操作</p>
         <p>indexedDB中的数据需要添加索引：actionFlag，决定数据该如何存取和同步。</p>
         <Table dataSource={tableData1} columns={tableColumns1} rowKey={"name"} pagination={false} />
         {/* <p style={{textAlign:"center"}}><img src={require("../static/explain.png")} alt="交互示例图" /></p> */}

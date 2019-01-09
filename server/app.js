@@ -24,7 +24,7 @@ app.get('/test', function (req, res) {
 
 const listData = Mock.mock({
     'list|20': [{
-        'id|+1': 100000,
+        'id|+1': 10,
         title: '@name',
         time: '@datetime',
         'content|3-10': ["@string('lower', 3, 10)"]
@@ -33,6 +33,10 @@ const listData = Mock.mock({
 
 app.get('/list', function (req, res) {
     res.json(listData);
+})
+app.get('/menu', function (req, res) {
+    console.log("send menu")
+    res.json(["aaa","bbb","ccc"]);
 })
 
 app.post('/editOrder', function (req, res) {

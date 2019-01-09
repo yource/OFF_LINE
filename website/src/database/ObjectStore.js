@@ -23,7 +23,7 @@ class Table {
             // 标记此条数据是否需要向服务器同步
             this.objectStore.createIndex("syncFlag", "syncFlag", { unique: false });
             // 从服务器拉取数据
-            window.websocket
+            // window.websocket
         }
     }
 
