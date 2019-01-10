@@ -22,7 +22,6 @@ const wsInit = () => {
     wss = new WebSocket(websocketUrl);
 
     wss.onopen = () => {
-        console.log("websocket connect success");
         if (window.storage.getItem("networkStatus") !== "online") {
             handleOnline()
         }
@@ -38,7 +37,6 @@ const wsInit = () => {
     wss.onmessage = () => { }
 
     wss.onclose = () => {
-        console.log("websocket close");
         if (heartbeat) {
             heartbeat = window.clearInterval(heartbeat);
         }
@@ -57,7 +55,7 @@ const wsReconnect = () => {
 }
 
 const handleOnline = () => {
-    console.log("change to online")
+    console.log("== online ==")
     window.storage.setItem("networkStatus", "online");
     // online 更新数据
     for (let i = 0; i < objectStores.length; i++) {
@@ -67,7 +65,7 @@ const handleOnline = () => {
     }
 }
 const handleOffline = () => {
-    console.log("change to offline")
+    console.log("== offline ==")
     window.storage.setItem("networkStatus", "offline");
 }
 

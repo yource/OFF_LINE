@@ -36,6 +36,7 @@ const listData = Mock.mock({
 });
 
 app.get('/list', function (req, res) {
+    console.log("send list")
     res.json(listData);
 })
 app.get('/menu', function (req, res) {
