@@ -14,3 +14,5 @@ yarn-error.log*
 /server/src
 /website/node_modules
 /website/build
+/client/node_modules
+/client/build
