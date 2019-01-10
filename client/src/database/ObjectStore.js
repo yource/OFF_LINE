@@ -1,30 +1,33 @@
-class Table {
-    constructor(db, name, key, indexs, syncFun) {
-        this.db = db;
-        this.name = name; // 表名
-        this.key = key; // 主键名
-        this.indexs = indexs; //索引（需要用作索引的列名）
-        this.syncFun = syncFun; //向服务器同步的接口和方法
+import axios from 'axios';
+
+class ObjectStore {
+    constructor(config) {
+        this.name = config.name; // 表名
+        this.keyPath = config.keyPath || "id"; // 主键名
+        this.indexs = config.indexs || []; //索引（需要用作索引的列名）
+        this.getParam = config.getParam || {}; //向服务器同步的接口和方法
+        this.single = !!config.single //是否只存储一条数据
     }
-
-    objectStore = null;
-
-    create() {
-        // 创建数据表，并配置主键和索引
-        if (!this.db.objectStoreNames.contains('person')) {
-            this.objectStore = this.db.createObjectStore(this.name, { keyPath: this.key });
-            for (let i = 0; i < this.indexs.length; i++) {
-                this.objectStore.createIndex(this.indexs[i].name, this.indexs[i].name, {
-                    unique: this.indexs[i].unique
-                });
+    // 初始化方法
+    init(db) {
+        axios.get("/" + this.name, { params: this.getParam}).then((response) => {
+            var data = response.data;
+            if(this.single){
+                // 存入单条数据
+                data[this.keyPath] = this.name;
+                db.transaction([this.name], 'readwrite').objectStore(this.name).clear();
+                db.transaction([this.name], 'readwrite').objectStore(this.name).add(data);
+                console.log(this.name + "表 更新成功");
+            }else{
+                //存入多条数据
+                var trans = db.transaction([this.name], 'readwrite');
+                trans.objectStore(this.name).clear();
+                for (var i = 0; i < data.length; i++) {
+                    trans.objectStore(this.name).add(data[i]);
+                }
+                console.log(this.name + "表 更新成功");
             }
-            // 标记数据来源
-            this.objectStore.createIndex("sourceFlag", "sourceFlag", { unique: false });
-            // 标记此条数据是否需要向服务器同步
-            this.objectStore.createIndex("syncFlag", "syncFlag", { unique: false });
-            // 从服务器拉取数据
-            // window.websocket
-        }
+        })
     }
 
     // 添加数据
@@ -81,4 +84,4 @@ class Table {
 
 }
 
-export default Table;
+export default ObjectStore;

@@ -97,7 +97,7 @@ class Test extends Component {
     }
 
     deleteDB() {
-        window.indexedDB.deleteDatabase('MENUSIFU');
+        window.indexedDB.deleteDatabase('menusifu');
     }
 
     render() {

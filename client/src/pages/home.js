@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import './home.css';
-import { Table, Divider } from 'antd';
+import { Table } from 'antd';
 
 class Home extends Component {
 
@@ -31,7 +31,7 @@ class Home extends Component {
         key: 'values'
       }]
     return (
-      <div className="Home">
+      <div className="Home" id="Home">
         <h1>OFF LINE 离线方案</h1>
         <h2>一、交互原则</h2>
         <p>离线状态下操作</p>

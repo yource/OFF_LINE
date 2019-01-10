@@ -1,95 +1,91 @@
-import axios from 'axios'
-import objectStores from './objectStoreConfig.js'
+import * as objectStores from './objectStoreConfig.js'
+/**
+ * websocket心跳机制
+ * 检测在线状态，触发lineOn/lineOff事件
+ **/
+let wss;
+let heartbeat;
+const websocketUrl = "ws://localhost:8888/admin";
+// const websocketUrl = "ws://192.168.1.141:8080/cloudmenu/websocket/admin";
 
-/** 
- * 建立websocket心跳机制
- * 检测online/offline，存入storage
- */
-
-window.storage.setItem("networkStatus", "unkonw");
-
+const lineOn = document.createEvent('HTMLEvents');
+lineOn.initEvent('lineOn', false, false);
+const lineOff = document.createEvent('HTMLEvents');
+lineOff.initEvent('lineOff', false, false);
 window.addEventListener("offline", function () {
     if (window.storage.getItem("networkStatus") !== "offline") {
-        window.storage.setItem("networkStatus", "offline");
+        window.dispatchEvent(lineOff)
     }
 });
 
-var wss;
-var heartbeat;
-const websocketUrl = "ws://localhost:8888/admin";
-// const websocketUrl = "ws://192.168.1.141:8080/cloudmenu/websocket/admin";
-const wsInit = () => {
+const initWebsocket = () => {
     wss = new WebSocket(websocketUrl);
-
     wss.onopen = () => {
         if (window.storage.getItem("networkStatus") !== "online") {
-            handleOnline()
+            window.dispatchEvent(lineOn)
         }
         heartbeat = setInterval(() => {
             wss.send("check connect")
         }, 1000);
     }
-
     wss.onerror = () => {
         wss.close();
     }
-
     wss.onmessage = () => { }
-
     wss.onclose = () => {
         if (heartbeat) {
             heartbeat = window.clearInterval(heartbeat);
         }
         if (window.storage.getItem("networkStatus") !== "offline") {
-            handleOffline()
+            window.dispatchEvent(lineOff)
         }
         wsReconnect();
-    }
+    }    
 }
 
 const wsReconnect = () => {
     setTimeout(() => {
         wss = null;
-        wsInit();
+        initWebsocket();
     }, 10000)
 }
 
-const handleOnline = () => {
+// 监听 lineOn/lineOff事件，重连时更新数据库
+window.addEventListener("lineOn", () => {
     console.log("== online ==")
     window.storage.setItem("networkStatus", "online");
-    // online 更新数据
-    for (let i = 0; i < objectStores.length; i++) {
-        if (objectStores[i].init) {
-            objectStores[i].init(database, objectStores[i].name)
-        }
+    for (let ob in objectStores) {
+        objectStores[ob].init(database)
     }
-}
-const handleOffline = () => {
+})
+window.addEventListener("lineOff", () => {
     console.log("== offline ==")
     window.storage.setItem("networkStatus", "offline");
-}
+})
 
 /**
  * 初始化数据库
+ * 第一次打开页面时，创建数据库和表
+ * 后续打开/刷新/重连时，更新数据
  */
 var db = {};
 var database = null;
-var openDB = window.indexedDB.open("MENUSIFU");
+var openDB = window.indexedDB.open("menusifu");
 
 openDB.onsuccess = (event) => {
     database = event.target.result;
     db.database = event.target.result;
     console.log('open indexedDB');
-    wsInit();
+    initWebsocket();
 };
 
 openDB.onupgradeneeded = (event) => {
     database = event.target.result;
     db.database = event.target.result;
-    for (let i = 0; i < objectStores.length; i++) {
-        if (!database.objectStoreNames.contains(objectStores[i].name)) {
-            database.createObjectStore(objectStores[i].name, { keyPath: objectStores[i].keyPath ? objectStores[i].keyPath : "id" });
-            console.log(objectStores[i].name + '表 新建成功');
+    for (let ob in objectStores) {
+        if (!database.objectStoreNames.contains(objectStores[ob].name)) {
+            database.createObjectStore(objectStores[ob].name, { keyPath: objectStores[ob].keyPath });
+            console.log(objectStores[ob].name + '表 新建成功');
         }
     }
 };
@@ -99,9 +95,9 @@ openDB.onerror = function (event) {
 };
 
 window.onbeforeunload = function () {
-    if(database){
+    if (database) {
         database.close();
     }
 }
 
-window.db = db;
+export default db;

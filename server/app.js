@@ -9,9 +9,6 @@ app.use(express.static('src'));
 app.get('/', function (req, res) {
     res.sendFile(__dirname + "/src/" + "index.html");
 })
-app.get('/add', function (req, res) {
-    res.sendFile(__dirname + "/src/" + "index.html");
-})
 app.get('/orders', function (req, res) {
     res.sendFile(__dirname + "/src/" + "index.html");
 })
@@ -23,7 +20,7 @@ app.get('/test', function (req, res) {
 })
 
 const listData = Mock.mock({
-    'list|20': [{
+    'list|12': [{
         'id|+1': 0,
         itemName: '@word(5,12)',
         price: 'integer(10,300)',
@@ -37,7 +34,7 @@ const listData = Mock.mock({
 
 app.get('/list', function (req, res) {
     console.log("send list")
-    res.json(listData);
+    res.json(listData.list);
 })
 app.get('/menu', function (req, res) {
     console.log("send menu")

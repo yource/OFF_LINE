@@ -1,19 +1,19 @@
-p{
+#Home p{
     font-size: 16px;
     text-indent: 2em;
 }
-h2{
+#Home h2{
     line-height: 30px;
     margin:35px 0 20px;
 }
-dt{
+#Home dt{
     font-size: 18px;
     line-height: 40px;
     color: rgba(0, 0, 0, 0.85);
     text-indent: 1.6em;
     margin-top: 15px;
 }
-dd{
+#Home dd{
     font-size: 16px;
     text-indent: 2em;
 }
