@@ -12,15 +12,15 @@ export const menu = new ObjectStore({
     keyPath: "id",
     //索引，默认为空
     indexs: [],
+    //跟服务器同步的url
+    url:"/menu",
     //get方法的参数（用于获取初始化数据），默认为空，此参数会拼接到url
-    getParam: {version:1},
+    initParam: {version:1},
     // 单条存储或多条存储，默认多条(false)
     single:true
 })
 
 export const list = new ObjectStore({
     name: "list",
+    url:"/list"
 })
-
-
-

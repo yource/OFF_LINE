@@ -13,23 +13,23 @@ class Home extends Component {
 
   render() {
     const tableData1 = [{
-      name:"actionFlag",
-      explain:"数据动作标记",
-      values:"unchanged: 从服务器获取； new: 本地新增； edit: 从服务器获取并在本地编辑的； delete: 从服务器获取并被删除的"
+      name: "actionFlag",
+      explain: "数据动作标记",
+      values: "unchanged: 从服务器获取； new: 本地新增； edit: 从服务器获取并在本地编辑的； delete: 从服务器获取并被删除的"
     }]
     const tableColumns1 = [{
       title: '属性',
       dataIndex: 'name',
       key: 'name'
     }, {
-        title: '说明',
-        dataIndex: 'explain',
-        key: 'explain'
-      }, {
-        title: '值',
-        dataIndex: 'values',
-        key: 'values'
-      }]
+      title: '说明',
+      dataIndex: 'explain',
+      key: 'explain'
+    }, {
+      title: '值',
+      dataIndex: 'values',
+      key: 'values'
+    }]
     return (
       <div className="Home" id="Home">
         <h1>OFF LINE 离线方案</h1>

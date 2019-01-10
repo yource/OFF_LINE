@@ -4,10 +4,10 @@ import './utils/storage.js'
 import './database/index.js'
 import App from './App';
 
-// window.addEventListener("databaseReady",()=>{
+window.addEventListener("databaseReady",()=>{
     ReactDOM.render(
         <App />,
         document.getElementById('root')
     );
-// })
+})
 

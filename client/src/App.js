@@ -1,3 +1,4 @@
+import 'antd/dist/antd.css'; 
 import './App.css';
 import React, { Component } from 'react';
 import { Layout, Menu } from 'antd';

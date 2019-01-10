@@ -23,7 +23,7 @@ const listData = Mock.mock({
     'list|12': [{
         'id|+1': 0,
         itemName: '@word(5,12)',
-        price: 'integer(10,300)',
+        price: '@integer(10,300)',
         description: '@sentence(4,10)',
         thumbPath: '@word(8,16)',
         lastUpdatedBy: '@name',

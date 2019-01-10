@@ -5,12 +5,13 @@ class ObjectStore {
         this.name = config.name; // 表名
         this.keyPath = config.keyPath || "id"; // 主键名
         this.indexs = config.indexs || []; //索引（需要用作索引的列名）
-        this.getParam = config.getParam || {}; //向服务器同步的接口和方法
-        this.single = !!config.single //是否只存储一条数据
+        this.initParam = config.initParam || {}; //向服务器同步的接口和方法
+        this.single = !!config.single; //是否只存储一条数据
+        this.url = config.url; //同步接口
     }
     // 初始化方法
     init(db) {
-        axios.get("/" + this.name, { params: this.getParam}).then((response) => {
+        axios.get(this.url, { params: this.initParam}).then((response) => {
             var data = response.data;
             if(this.single){
                 // 存入单条数据
