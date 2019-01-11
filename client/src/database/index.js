@@ -1,3 +1,4 @@
+import axios from 'axios'
 import * as objectStores from './objectStoreConfig.js'
 
 let wss;
@@ -30,9 +31,33 @@ window.addEventListener("offline", function () {
 window.addEventListener("lineOn", () => {
     console.log("== online ==")
     window.storage.setItem("networkStatus", "online");
-    for (let ob in objectStores) {
-        objectStores[ob].init(database)
-    }
+    // 遍历log表，向服务端同步数据
+    var readLog = database.transaction(['log']).objectStore('log');
+    readLog.openCursor().onsuccess = function (event) {
+        var cursor = event.target.result;
+        var successCount = 0;
+        var failCount = 0;
+
+        if (cursor) {
+            console.log("READ LOG",cursor.value)
+            axios({
+                method: cursor.value.method,
+                url: cursor.value.url,
+                data: cursor.value.to
+            }).then(()=>{
+                successCount++;
+                db.objectStore('log').delete(cursor.value.key);
+            }).catch(()=>{
+                failCount++;
+            })
+            cursor.continue();
+        } else {
+            console.log('log提交完成。成功：'+successCount+'条，失败：' + failCount+'条');
+            for (let ob in objectStores) {
+                objectStores[ob].init(database)
+            }
+        }
+    };
 })
 window.addEventListener("lineOff", () => {
     console.log("== offline ==")
@@ -100,6 +125,12 @@ openDB.onupgradeneeded = (event) => {
     firstOpen = true;
     database = event.target.result;
     db.database = event.target.result;
+    // 新建log表，自增主键
+    if (!database.objectStoreNames.contains("log")) {
+        database.createObjectStore("log", { autoIncrement: true });
+        console.log('log表 新建成功');
+    }
+    // 新建配置文件中的表
     for (let ob in objectStores) {
         if (!database.objectStoreNames.contains(objectStores[ob].name)) {
             database.createObjectStore(objectStores[ob].name, { keyPath: objectStores[ob].keyPath });
@@ -137,4 +168,85 @@ db.uuid = uuid;
 db.objectStore = function (name) {
     return this.database.transaction([name], 'readwrite').objectStore(name)
 }
+/**
+ * 数据库操作方法（添加/修改/删除）
+ * name 表名
+ * data 数据
+ * 返回一个Promise
+ */
+db.add = (name, data) => {
+    return new Promise((resolve, reject) => {
+        var addRequest = db.objectStore(name).add(data);
+        addRequest.onsuccess = () => {
+            resolve();
+            let logInfo = {
+                url: objectStores[name].url,
+                method: "post",
+                name,
+                from: null,
+                to: data
+            }
+            console.log("LOG", logInfo);
+            db.objectStore("log").add(logInfo);
+        }
+        addRequest.onerror = (e) => {
+            reject();
+            console.log("ADD ERROR",e)
+        }
+    })
+}
+
+db.edit = (name, data) => {
+    return new Promise((resolve, reject) => {
+        let logInfo = {
+            url: objectStores[name].url,
+            method: "put",
+            name,
+            from: null,
+            to: data
+        }
+        var oldValueRequest = db.objectStore(name).get(data[objectStores[name].keyPath]);
+        oldValueRequest.onsuccess = (e) => {
+            logInfo.from = oldValueRequest.result;
+            var editRequest = db.objectStore(name).put(data);
+            editRequest.onsuccess = () => {
+                resolve();
+                console.log("LOG", logInfo);
+                db.objectStore("log").add(logInfo);
+            }
+            editRequest.onerror = (e) => {
+                console.log("EDIT ERROR", e)
+                reject()
+            }
+        }
+
+    })
+}
+
+db.delete = (name, key) => {
+    return new Promise((resolve, reject) => {
+        let logInfo = {
+            url: objectStores[name].url,
+            method: "put",
+            name,
+            from: null,
+            to: null
+        }
+        var oldValueRequest = db.objectStore(name).get(key);
+        oldValueRequest.onsuccess = (e) => {
+            logInfo.from = oldValueRequest.result;
+            var delRequest = db.objectStore(name).delete(key);
+            delRequest.onsuccess = () => {
+                resolve();
+                console.log("LOG", logInfo);
+                db.objectStore("log").add(logInfo);
+            }
+            delRequest.onerror = (e) => {
+                console.log("DELETE ERROR", e)
+                reject()
+            }
+        }
+    })
+}
+
 export default db;

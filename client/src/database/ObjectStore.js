@@ -68,7 +68,7 @@ class ObjectStore {
      * 只根据主键
      * param {id:1}
      */
-    del(param, successCB, failCB) {
+    delete(param, successCB, failCB) {
         var request = this.db.transaction([this.name], 'readwrite')
             .objectStore(this.name)
             .delete(param[this.key]);
