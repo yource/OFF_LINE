@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import './home.css';
 import { Table } from 'antd';
+import ajax from '../utils/ajax.js'
 
 class Home extends Component {
 
@@ -9,7 +10,13 @@ class Home extends Component {
     this.state = {}
   }
 
-  componentDidMount() { }
+  componentDidMount() {
+    setInterval(()=>{
+      ajax.get('/list').then((response)=>{
+        console.log(response.data)
+      })
+    },2000)
+  }
 
   render() {
     const tableData1 = [{

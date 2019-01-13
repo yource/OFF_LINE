@@ -1,13 +1,21 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import './utils/storage.js'
-import './database/index.js'
+import { createStore, applyMiddleware } from 'redux';
+import { Provider } from 'react-redux';
+import rootReducer from './reducers'
+import './utils/storage'
+import db from './utils/database'
 import App from './App';
 
-window.addEventListener("databaseReady",()=>{
+window.addEventListener("databaseReady", () => {
+    let store = createStore(
+        rootReducer,
+        applyMiddleware(db.saveState)
+    )
     ReactDOM.render(
-        <App />,
+        <Provider store={store}>
+            <App />
+        </Provider>,
         document.getElementById('root')
     );
 })
-
