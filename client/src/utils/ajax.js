@@ -13,9 +13,9 @@ function ajax() {
             if (window.storage.getItem("networkStatus") === "offline") {
                 // 对非get请求进行记录
                 if(config.method!=='get'){
+                    db.log(JSON.stringify(config));
                     config.cancelToken = source.token;
                     source.cancel("OFFLINE");
-                    db.log(JSON.stringify(config));
                 }
             }
             return config;

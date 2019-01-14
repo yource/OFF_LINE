@@ -33,16 +33,17 @@ window.addEventListener("lineOn", () => {
     // 遍历log表，向服务端同步数据
     var readLog = database.transaction(['log']).objectStore('log');
     readLog.openCursor().onsuccess = function (event) {
-        var cursor = event.target.result;
+        let cursor = event.target.result;
         if (cursor) {
             let config = JSON.parse(cursor.value);
-            console.log("READ LOG", config)
+            let key = cursor.key;
             axios(config).then(() => {
-                readLog.delete(config.key)
+                console.log('已处理log '+key);
+                database.transaction(['log'],'readwrite').objectStore('log').delete(key)
             })
             cursor.continue();
         } else {
-            console.log('log提交完成');
+            console.log('log遍历完成');
         }
     };
 })

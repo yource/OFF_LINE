@@ -42,7 +42,6 @@ class List extends Component {
         message.success('添加成功');
     }
 
-
     addItem() {
         this.setState({
             visible: true,
@@ -75,8 +74,11 @@ class List extends Component {
             okType: 'danger',
             cancelText: '取消',
             onOk:()=> {
-                this.props.del({
-                    id
+                ajax.delete('/list',{params:{id}}).then((data)=>{
+                    this.props.del({id});
+                    message.success("删除成功")
+                },(error)=>{
+                    message.error("删除失败")
                 })
             }
         });
@@ -88,9 +90,19 @@ class List extends Component {
                     visible: false
                 });
                 if (this.state.addEdit === "add") {
-                    this.props.add(values)
+                    ajax.post('/list/add',values).then((data)=>{
+                        this.props.add(values);
+                        message.success("添加成功")
+                    },(error)=>{
+                        message.error("添加失败")
+                    })
                 } else {
-                    this.props.edit(values)
+                    ajax.put('/list',values).then((data)=>{
+                        this.props.edit(values);
+                        message.success("修改成功")
+                    },(error)=>{
+                        message.error("修改失败")
+                    })
                 }
             }
         });

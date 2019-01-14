@@ -41,18 +41,13 @@ app.get('/menu', function (req, res) {
     res.json(["aaa", "bbb", "ccc"]);
 })
 
-app.post('/editOrder', function (req, res) {
+app.post('/list/add', function (req, res) {
     var order = {};
     req.on("data", function (data) {
         order = JSON.parse(data);
     });
     req.on("end", function () {
-        for (var i = 0; i < listData.list.length; i++) {
-            if (listData.list[i].id == order.id) {
-                listData.list[i] = order;
-                break;
-            }
-        }
+        listData.list.unshift(order)
     })
     res.send('success');
 })
@@ -64,9 +59,28 @@ app.post('/makeOrder', function (req, res) {
     res.send('success');
 })
 
-app.post('/reconcile', function (req, res) {
+app.delete('/list', function (req, res) {
+    var index;
+    var id = req.query.id;
+    index = listData.list.findIndex((item)=>{
+        return item.id == id
+    });
+    if(index>-1){
+        listData.list.splice(index,1)
+    }
+    res.send('success');
+})
+
+app.put('/list', function (req, res) {
+    var index;
     req.on("data", function (data) {
-        listData.list = JSON.parse(data).concat(listData.list);
+        data = JSON.parse(data)
+        index = listData.list.findIndex((item)=>{
+            return item.id == data.id
+        });
+        if(index>-1){
+            listData.list[index] = data;
+        }
     });
     res.send('success');
 })
