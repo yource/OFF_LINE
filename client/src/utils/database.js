@@ -1,5 +1,4 @@
 import axios from 'axios'
-import * as objectStores from './objectStoreConfig.js'
 
 let wss;
 let heartbeat;
@@ -35,11 +34,11 @@ window.addEventListener("lineOn", () => {
     var readLog = database.transaction(['log']).objectStore('log');
     readLog.openCursor().onsuccess = function (event) {
         var cursor = event.target.result;
-        var success = [];
         if (cursor) {
-            console.log("READ LOG", cursor.value)
-            axios(cursor.value).then(() => {
-                success.push(cursor.value.key)
+            let config = JSON.parse(cursor.value);
+            console.log("READ LOG", config)
+            axios(config).then(() => {
+                readLog.delete(config.key)
             })
             cursor.continue();
         } else {
@@ -109,7 +108,6 @@ openDB.onsuccess = (event) => {
 };
 
 openDB.onupgradeneeded = (event) => {
-    firstOpen = true;
     database = event.target.result;
     db.database = event.target.result;
     // 新建log表
@@ -141,13 +139,16 @@ db.log = function (config) {
 }
 
 // 保存全局state
-db.saveState = store => next => action => {
-    let result = next(action)
-    this.database.transaction(['state'], 'readwrite').objectStore('state').put({
-        ...result,
+db.saveState = function(state){
+    let request = this.database.transaction(['state'], 'readwrite').objectStore('state').put({
+        ...state,
         stateKey: "state"
     });
-    return result;
+    request.onsuccess = function(){
+        console.log("SAVE STATE SUCCESS")
+    }
+    request.onerror = function () {
+        console.log("SAVE STATE ERROR")
+    }
 }
-
 export default db;

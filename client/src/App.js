@@ -20,8 +20,6 @@ class App extends Component {
     }
   }
 
-  componentDidMount() { }
-
   handleClick = (e) => {
     this.setState({
       current: e.key,

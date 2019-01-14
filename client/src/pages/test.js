@@ -1,95 +1,47 @@
 import React, { Component } from 'react';
-import './list.css';
+import { connect } from 'react-redux';
+import ajax from '../utils/ajax';
 import { Form, Input, Button, message, Divider, Table, Modal } from 'antd';
-import db from '../database';
-import someActionCreator from './actions/test1';
+import './test.css';
+import uid from '../utils/uid.js'
+import * as testAction from '../actions/test';
 
 const confirm = Modal.confirm;
 
-function mapStateToProps(state) {
-    return {
-        propName: state.propName
-    };
-}
+const mapStateToProps = state => ({
+    list: state.list
+})
 
-function mapDispatchProps(dispatch) {
-    return {
-        someAction: (arg) => dispatch(someActionCreator(arg)),
-        otherActions: bindActionCreators(actionCreators, dispatch)
-    };
-}
+const mapDispatchToProps = dispatch => ({
+    get: (param) => dispatch(testAction.testGet(param)),
+    add: (param) => dispatch(testAction.testAdd(param)),
+    edit: (param) => dispatch(testAction.testEdit(param)),
+    del: (param) => dispatch(testAction.testDelete(param))
+})
 
 class List extends Component {
 
-    constructor(props) {
+    constructor(props){
         super(props);
         this.state = {
-            list: [],
-            menu: [],
-            visible: false,
-            addEdit: "add",
-            editData: {
-
-            }
+            visible:false,
+            addEdit:'add'
         }
     }
 
     componentDidMount() {
-        this.getList()
-        this.getMenu()
-    }
-
-    getList() {
-        let listData = [];
-        //遍历数据库
-        const listRequest = db.objectStore("list").openCursor();
-        listRequest.onsuccess = (e) => {
-            let cursor = e.target.result;
-            if (cursor) {
-                listData.push(cursor.value);
-                cursor.continue();
-            } else {
-                this.setState({
-                    list: listData
-                })
-            }
-        }
-    }
-
-    getMenu() {
-        //获取单个数据
-        const menuRequest = db.objectStore("menu").get("menu");
-        menuRequest.onsuccess = (e) => {
-            if (menuRequest.result) {
-                this.setState({
-                    menu: menuRequest.result
-                })
-            } else {
-                message.warning('未找到记录');
-            }
-        }
+        ajax.get('./list').then((data) => {
+            this.props.get(data);
+        }, (error) => {
+            console.log("ERROR",error)
+        })
     }
 
     // 添加数据
     submitAdd(data) {
-        db.add("list", data).then(() => {
-            message.success('添加成功');
-            this.getList();
-        }, () => {
-            message.error('添加失败');
-        })
+        message.success('添加成功');
     }
 
-    // 编辑数据
-    submitEdit(data) {
-        db.edit("list", data).then(() => {
-            message.success('修改成功');
-            this.getList();
-        }, () => {
-            message.error('修改失败');
-        })
-
-    }
 
     addItem() {
         this.setState({
@@ -97,7 +49,7 @@ class List extends Component {
             addEdit: "add"
         });
         this.props.form.setFieldsValue({
-            id: db.uuid(),
+            id: uid(),
             itemName: "",
             price: "",
             description: "",
@@ -122,12 +74,9 @@ class List extends Component {
             okText: '确定',
             okType: 'danger',
             cancelText: '取消',
-            onOk() {
-                //删除数据
-                db.delete("list", id).then(() => {
-                    message.success("删除成功");
-                }, () => {
-                    message.error("删除失败");
+            onOk:()=> {
+                this.props.del({
+                    id
                 })
             }
         });
@@ -139,9 +88,9 @@ class List extends Component {
                     visible: false
                 });
                 if (this.state.addEdit === "add") {
-                    this.submitAdd(values)
+                    this.props.add(values)
                 } else {
-                    this.submitEdit(values)
+                    this.props.edit(values)
                 }
             }
         });
@@ -171,7 +120,7 @@ class List extends Component {
     }, {
         title: 'Description',
         dataIndex: 'description',
-    },{
+    }, {
         title: 'Options',
         width: 140,
         render: (record) => (
@@ -184,6 +133,7 @@ class List extends Component {
     }];
 
     render() {
+        const { list } = this.props;
         const { getFieldDecorator } = this.props.form;
         const formItemLayout = {
             labelCol: {
@@ -201,7 +151,7 @@ class List extends Component {
                     <Button type="primary" onClick={this.addItem.bind(this)}>新增记录</Button>
                 </div>
                 <div className="tableCon">
-                    <Table columns={this.columns} dataSource={this.state.list} rowKey="id" />
+                    <Table columns={this.columns} dataSource={list} rowKey="id" />
                 </div>
                 <Modal
                     title="编辑"
@@ -239,9 +189,6 @@ class List extends Component {
                             })(<Input />)
                             }
                         </Form.Item>
-                        {/* <Form.Item label="printerNames" {...formItemLayout}>
-                            <Input defaultValue={this.state.editData.printerNames} />
-                        </Form.Item> */}
                     </Form>
                 </Modal>
             </div>
@@ -251,4 +198,4 @@ class List extends Component {
 
 const ListPage = Form.create()(List);
 
-export default connect(mapStateToProps, mapDispatchProps)(ListPage);
+export default connect(mapStateToProps, mapDispatchToProps)(ListPage);

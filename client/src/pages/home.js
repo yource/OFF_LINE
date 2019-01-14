@@ -1,22 +1,8 @@
 import React, { Component } from 'react';
 import './home.css';
 import { Table } from 'antd';
-import ajax from '../utils/ajax.js'
 
 class Home extends Component {
-
-  constructor(props) {
-    super(props);
-    this.state = {}
-  }
-
-  componentDidMount() {
-    setInterval(()=>{
-      ajax.get('/list').then((response)=>{
-        console.log(response.data)
-      })
-    },2000)
-  }
 
   render() {
     const tableData1 = [{
