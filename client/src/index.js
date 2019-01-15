@@ -16,10 +16,10 @@ window.addEventListener("databaseReady", () => {
         } else {
             store = createStore(rootReducer);
         }
-        // 监听store，实时存入indexedDB
-        store.subscribe(() => {
+        // 页面关闭前，保存state
+        window.onbeforeunload = function(){
             db.saveState(store.getState())
-        })
+        }
         ReactDOM.render(
             <Provider store={store}>
                 <App />
@@ -27,5 +27,4 @@ window.addEventListener("databaseReady", () => {
             document.getElementById('root')
         );
     }
-
 })

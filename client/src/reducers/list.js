@@ -3,8 +3,10 @@ let newState;
 
 const list = (state = [], action) => {
   switch (action.type) {
+
+    // 从服务器获取数据，与本地数据合并
     case 'LIST_GET':
-      newState = JSON.parse(JSON.stringify(state));
+      newState = [...state];
       action.param.map(function (item) {
         index = newState.findIndex(function (value) {
           return value.id === item.id
@@ -17,24 +19,29 @@ const list = (state = [], action) => {
         return item;
       })
       return newState;
+
+    // 添加列表项
     case 'LIST_ADD':
-      newState = JSON.parse(JSON.stringify(state));
-      newState.unshift(action.param)
-      return newState;
+      return [action.param,...state];
+
+    // 编辑列表项
     case 'LIST_EDIT':
-      index = state.findIndex((value) => {
-        return value.id === action.param.id
-      });
-      newState = JSON.parse(JSON.stringify(state));
-      newState[index] = action.param;
-      return newState;
+      return state.map(((item)=>{
+        if(item.id === action.param.id){
+          return action.param
+        }
+        return item;
+      }));
+
+    // 删除列表项
     case 'LIST_DELETE':
       index = state.findIndex((value) => {
         return value.id === action.param.id
       });
-      newState = JSON.parse(JSON.stringify(state));
+      newState = [...state];
       newState.splice(index, 1);
       return newState;
+
     default:
       return state
   }

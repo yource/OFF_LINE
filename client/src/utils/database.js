@@ -32,18 +32,16 @@ window.addEventListener("lineOn", () => {
     window.storage.setItem("networkStatus", "online");
     // 遍历log表，向服务端同步数据
     var readLog = database.transaction(['log']).objectStore('log');
+    var logger = [];
     readLog.openCursor().onsuccess = function (event) {
         let cursor = event.target.result;
         if (cursor) {
             let config = JSON.parse(cursor.value);
-            let key = cursor.key;
-            axios(config).then(() => {
-                console.log('已处理log '+key);
-                database.transaction(['log'],'readwrite').objectStore('log').delete(key)
-            })
+            config.indexedKeyPath = cursor.key;
+            logger.unshift(config)
             cursor.continue();
         } else {
-            console.log('log遍历完成');
+            syncLog(logger, logger.length - 1)
         }
     };
 })
@@ -51,6 +49,27 @@ window.addEventListener("lineOff", () => {
     console.log("== offline ==")
     window.storage.setItem("networkStatus", "offline");
 })
+
+/**
+ * 处理log记录
+ * 递归执行ajax
+ */
+function syncLog(arr, idx) {
+    axios(arr[idx]).then(() => {
+        database.transaction(['log'], 'readwrite').objectStore('log').delete(arr[idx].indexedKeyPath);
+        if (idx > 0) {
+            syncLog(arr, idx - 1);
+        } else {
+            console.log("log 处理完成")
+        }
+    }, (error) => {
+        if (idx > 0) {
+            syncLog(arr, idx - 1);
+        } else {
+            console.log("log 处理完成")
+        }
+    })
+}
 
 /**
  * websocket心跳机制
@@ -140,12 +159,12 @@ db.log = function (config) {
 }
 
 // 保存全局state
-db.saveState = function(state){
+db.saveState = function (state) {
     let request = this.database.transaction(['state'], 'readwrite').objectStore('state').put({
         ...state,
         stateKey: "state"
     });
-    request.onsuccess = function(){
+    request.onsuccess = function () {
         console.log("SAVE STATE SUCCESS")
     }
     request.onerror = function () {
