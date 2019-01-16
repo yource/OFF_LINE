@@ -58,7 +58,9 @@ function syncLog(arr, idx) {
     axios(arr[idx]).then(() => {
         database.transaction(['log'], 'readwrite').objectStore('log').delete(arr[idx].indexedKeyPath);
         if (idx > 0) {
-            syncLog(arr, idx - 1);
+            setTimeout(()=>{
+                syncLog(arr, idx - 1);
+            },10)
         } else {
             console.log("log 处理完成")
         }

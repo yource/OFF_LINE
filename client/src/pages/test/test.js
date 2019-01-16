@@ -1,10 +1,9 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import ajax from '../utils/ajax';
+import ajax from '../../utils/ajax';
 import { Form, Input, Button, message, Divider, Table, Modal } from 'antd';
 import './test.css';
-import uid from '../utils/uid.js'
-import * as testAction from '../actions/test';
+import uid from '../../utils/uid.js'
 
 const confirm = Modal.confirm;
 
@@ -13,10 +12,22 @@ const mapStateToProps = state => ({
 })
 
 const mapDispatchToProps = dispatch => ({
-    get: (param) => dispatch(testAction.testGet(param)),
-    add: (param) => dispatch(testAction.testAdd(param)),
-    edit: (param) => dispatch(testAction.testEdit(param)),
-    del: (param) => dispatch(testAction.testDelete(param))
+    get: (param) => dispatch({
+        type:'LIST_GET',
+        param
+    }),
+    add: (param) => dispatch({
+        type: 'LIST_ADD',
+        param
+    }),
+    edit: (param) => dispatch({
+        type: 'LIST_EDIT',
+        param
+    }),
+    del: (param) => dispatch({
+        type: 'LIST_DELETE',
+        param
+    })
 })
 
 class List extends Component {
@@ -31,9 +42,10 @@ class List extends Component {
 
     componentDidMount() {
         ajax.get('./list').then((data) => {
+            console.log("GET SUCCESS")
             this.props.get(data);
         }, (error) => {
-            console.log("ERROR",error)
+            console.log("GET ERROR",error)
         })
     }
 

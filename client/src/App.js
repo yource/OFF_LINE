@@ -3,8 +3,9 @@ import './App.css';
 import React, { Component } from 'react';
 import { Layout, Menu } from 'antd';
 import { BrowserRouter as Router, Route, Link } from "react-router-dom";
-import Home from './pages/home.js'
-import Test from './pages/test.js'
+import Home from './pages/home/home'
+import Test from './pages/test/test'
+import Category from './pages/category/category'
 
 // import * as serviceWorker from './serviceWorker';
 // serviceWorker.register();
@@ -39,12 +40,16 @@ class App extends Component {
                 <Menu.Item key="test">
                   <Link to="/test" >Test</Link>
                 </Menu.Item>
+                <Menu.Item key="category">
+                  <Link to="/category" >Category</Link>
+                </Menu.Item>
               </Menu>
             </Header>
             <Content className="mainContent">
               <div style={{ padding: '20px', background: '#fff', borderRadius: '5px' }}>
                 <Route exact path="/" component={Home} />
                 <Route path="/test" component={Test} />
+                <Route path="/category" component={Category} />
               </div>
             </Content>
           </Layout>

@@ -22,6 +22,7 @@ function ajax() {
         }
     );
     instance.interceptors.response.use(function (response) {
+        console.log("Before Response")
         if(response && response.data){
             return response.data
         }else{
@@ -31,6 +32,7 @@ function ajax() {
         if (axios.isCancel(error)) {
             console.log('Request canceled', error.message);
         } else {
+            console.log("Response Error")
             return Promise.reject(error);
         }
     });
