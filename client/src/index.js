@@ -11,11 +11,16 @@ window.addEventListener("databaseReady", () => {
     var store;
     var storeRequest = db.database.transaction(['state'], 'readwrite').objectStore('state').get("state");
     storeRequest.onsuccess = function () {
+        var initState = storeRequest.result;
+        delete (initState.stateKey);
         if (!storeRequest.result.stateInit) {
-            store = createStore(rootReducer, storeRequest.result);
+            store = createStore(rootReducer, initState);
         } else {
             store = createStore(rootReducer);
         }
+        store.subscribe(()=>{
+            console.log("STORE CHANGE ", store.getState())
+        })
         // 页面关闭前，保存state
         window.onbeforeunload = function(){
             db.saveState(store.getState())

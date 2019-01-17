@@ -3,7 +3,7 @@ import axios from 'axios'
 let wss;
 let heartbeat;
 const heartbeatTime = 1000;  //心跳检测的事件间隔
-const reconnectTime = 2000; //尝试重连的时间间隔
+const reconnectTime = 20000; //尝试重连的时间间隔
 const websocketUrl = "ws://localhost:8888/admin";
 // const websocketUrl = "ws://192.168.1.141:8080/cloudmenu/websocket/admin";
 

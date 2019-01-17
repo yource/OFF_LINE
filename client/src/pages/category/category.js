@@ -4,10 +4,10 @@ import ajax from '../../utils/ajax';
 import { Button, message, Divider, Table, Modal } from 'antd';
 import './category.css';
 import DetailModal from './detailModal'
+import AddModal from './addModal'
 
 const mapStateToProps = state => ({
-    category: state.category.category,
-    tax: state.category.tax
+    category: state.category.category
 })
 
 const mapDispatchToProps = dispatch => ({
@@ -37,7 +37,7 @@ class category extends Component {
         detailVisible: false,
         editVisible: false,
         addVisible: false,
-        detailData:{}
+        detailData: {}
     }
 
     componentDidMount() {
@@ -52,7 +52,7 @@ class category extends Component {
     showDetail(data) {
         this.setState({
             detailVisible: true,
-            detailData:data
+            detailData: data
         })
     }
     hideDetail() {
@@ -61,8 +61,21 @@ class category extends Component {
         })
     }
 
-    addCategory() {
-        // 跳转到新建
+    showAdd() {
+        this.setState({
+            addVisible: true
+        })
+    }
+    hideAdd() {
+        this.setState({
+            addVisible: false
+        })
+    }
+    handleAdd(data) {
+        console.log(data)
+        this.setState({
+            addVisible: false
+        })
     }
 
     editCategory(data) {
@@ -120,12 +133,11 @@ class category extends Component {
         )
     }, {
         title: 'Tax',
-        render: record => (
+        dataIndex: 'tax',
+        render: tax => (
             <span>
-                {this.props.tax.map((item) => {
-                    if (item.categoryId.indexOf(record.id) > -1) {
-                        return <span className="saleItem" key={item.id}>{item.name}</span>
-                    }
+                {tax.map((item, index) => {
+                    return <span className="saleItem" key={index}>{item.name}</span>
                 })}
             </span>
         )
@@ -149,12 +161,13 @@ class category extends Component {
         return (
             <div className="list" id="list">
                 <div className="topButtons">
-                    <Button type="primary" onClick={this.addCategory.bind(this)}>新增记录</Button>
+                    <Button type="primary" onClick={this.showAdd.bind(this)}>新增记录</Button>
                 </div>
                 <div className="tableCon">
                     <Table columns={this.columns} dataSource={this.props.category} rowKey="id" />
                 </div>
                 <DetailModal data={this.state.detailData} visible={this.state.detailVisible} handleCancel={this.hideDetail.bind(this)}></DetailModal>
+                <AddModal visible={this.state.addVisible} handleCancel={this.hideAdd.bind(this)} handleOk={this.handleAdd.bind(this)}></AddModal>
             </div>
         );
     }

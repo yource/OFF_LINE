@@ -7,11 +7,11 @@
     color: #ff7700;
 }
 
-#list.list .topButtons {
+.topButtons {
     margin-bottom: 20px;
 }
 
-#list.list .tableBtn {
+.tableBtn {
     color: #1890ff;
     cursor: pointer;
     font-size: 14px;

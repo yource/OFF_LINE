@@ -6,6 +6,7 @@ import { BrowserRouter as Router, Route, Link } from "react-router-dom";
 import Home from './pages/home/home'
 import Test from './pages/test/test'
 import Category from './pages/category/category'
+import Tax from './pages/tax/tax'
 
 // import * as serviceWorker from './serviceWorker';
 // serviceWorker.register();
@@ -43,6 +44,9 @@ class App extends Component {
                 <Menu.Item key="category">
                   <Link to="/category" >Category</Link>
                 </Menu.Item>
+                <Menu.Item key="tax">
+                  <Link to="/tax" >Tax</Link>
+                </Menu.Item>
               </Menu>
             </Header>
             <Content className="mainContent">
@@ -50,6 +54,7 @@ class App extends Component {
                 <Route exact path="/" component={Home} />
                 <Route path="/test" component={Test} />
                 <Route path="/category" component={Category} />
+                <Route path="/tax" component={Tax} />
               </div>
             </Content>
           </Layout>
