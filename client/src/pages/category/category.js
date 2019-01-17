@@ -5,9 +5,11 @@ import { Button, message, Divider, Table, Modal } from 'antd';
 import './category.css';
 import DetailModal from './detailModal'
 import AddModal from './addModal'
+import EditModal from './editModal'
 
 const mapStateToProps = state => ({
-    category: state.category.category
+    category: state.category,
+    tax:state.tax
 })
 
 const mapDispatchToProps = dispatch => ({
@@ -37,16 +39,16 @@ class category extends Component {
         detailVisible: false,
         editVisible: false,
         addVisible: false,
-        detailData: {}
+        detailData: {},
+        editData:{}
     }
 
     componentDidMount() {
-        // ajax.get('./list').then((data) => {
-        //     console.log("GET SUCCESS")
-        //     this.props.get(data);
-        // }, (error) => {
-        //     console.log("GET ERROR", error)
-        // })
+        ajax.get('/category').then((data) => {
+            this.props.get(data);
+        }, (error) => {
+            message.warning("云端数据获取失败")
+        })
     }
 
     showDetail(data) {
@@ -72,14 +74,31 @@ class category extends Component {
         })
     }
     handleAdd(data) {
-        console.log(data)
-        this.setState({
-            addVisible: false
+        data.need_id = true;
+        ajax.post("/category",data).then((response)=>{
+            data.id=response.id;
+            data.saleItems=[];
+            data.tax=[];
+            this.props.add(data);
+            message.success("添加成功");
+            this.setState({
+                addVisible:false
+            })
+        },()=>{
+            message.error("添加失败")
         })
     }
 
-    editCategory(data) {
-        // 跳转到编辑
+    showEdit(data) {
+        this.setState({
+            editVisible:true,
+            editData:data
+        })
+    }
+    hideEdit(){
+        this.setState({
+            editVisible:false
+        })
     }
 
     delCategory(id) {
@@ -90,7 +109,7 @@ class category extends Component {
             okType: 'danger',
             cancelText: '取消',
             onOk: () => {
-                ajax.delete('/list', { params: { id } }).then((data) => {
+                ajax.delete('/category', { params: { id } }).then((data) => {
                     this.props.del({ id });
                     message.success("删除成功")
                 }, (error) => {
@@ -148,7 +167,7 @@ class category extends Component {
             <span>
                 <span className="tableBtn" onClick={this.showDetail.bind(this, record)}>详情</span>
                 <Divider type="vertical" />
-                <span className="tableBtn" onClick={this.editCategory.bind(this, record)}>修改</span>
+                <span className="tableBtn" onClick={this.showEdit.bind(this, record)}>修改</span>
                 <Divider type="vertical" />
                 <span className="tableBtn" onClick={this.copyCategory.bind(this, record)}>复制</span>
                 <Divider type="vertical" />
@@ -158,16 +177,18 @@ class category extends Component {
     }];
 
     render() {
+        const {category} = this.props;
         return (
             <div className="list" id="list">
                 <div className="topButtons">
                     <Button type="primary" onClick={this.showAdd.bind(this)}>新增记录</Button>
                 </div>
                 <div className="tableCon">
-                    <Table columns={this.columns} dataSource={this.props.category} rowKey="id" />
+                    <Table columns={this.columns} dataSource={category} rowKey="id" />
                 </div>
                 <DetailModal data={this.state.detailData} visible={this.state.detailVisible} handleCancel={this.hideDetail.bind(this)}></DetailModal>
                 <AddModal visible={this.state.addVisible} handleCancel={this.hideAdd.bind(this)} handleOk={this.handleAdd.bind(this)}></AddModal>
+                <EditModal data={this.state.editData} visible={this.state.editVisible} handleCancel={this.hideEdit.bind(this)}></EditModal>
             </div>
         );
     }

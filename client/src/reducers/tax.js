@@ -1,14 +1,13 @@
 let index;
 let newState;
 
-const tax = (state = {
-    tax: [{
+const tax = (state = [{
         description: "some tax tax",
         id: "1",
         name: "tax1",
         rate: 0
     }]
-}, action) => {
+, action) => {
     switch (action.type) {
 
         // 从服务器获取数据，与本地数据合并

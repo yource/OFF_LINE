@@ -1,5 +1,6 @@
 import axios from 'axios';
 import db from './database'
+import uid from './uid'
 const instance = axios.create();
 const CancelToken = axios.CancelToken;
 const source = CancelToken.source();
@@ -15,7 +16,8 @@ function ajax() {
                 if(config.method!=='get'){
                     db.log(JSON.stringify(config));
                     config.cancelToken = source.token;
-                    source.cancel("OFFLINE");
+                    let message = config.data&&config.data.need_id?{id:uid()}:{}
+                    source.cancel(message);
                 }
             }
             return config;
@@ -30,9 +32,9 @@ function ajax() {
         }
     }, function (error) {
         if (axios.isCancel(error)) {
-            console.log('Request canceled', error.message);
+            console.log('Request canceled');
+            return Promise.resolve(error.message);
         } else {
-            console.log("Response Error")
             return Promise.reject(error);
         }
     });

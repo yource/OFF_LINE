@@ -7,5 +7,17 @@
 }
 
 .ant-tabs-nav .ant-tabs-tab {
-    font-size: 18px;
+    font-size: 16px;
+}
+.ant-modal-header{
+    background:#1b85e6;
+}
+.ant-modal-title{
+    color: #fff;
+}
+.ant-modal-close{
+    color:rgba(255,255,255,0.7)
+}
+.ant-modal-close:hover{
+    color:rgba(255,255,255,1)
 }

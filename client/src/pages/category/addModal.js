@@ -1,8 +1,6 @@
 import React from 'react';
 import { Modal,  Input, Form } from 'antd';
 
-
-
 class detaiModal extends React.Component {
 
     submit(){
@@ -35,7 +33,7 @@ class detaiModal extends React.Component {
                 <div>
                     <Form>
                         <Form.Item label="name" {...formItemLayout}>
-                            {getFieldDecorator("category name", {
+                            {getFieldDecorator("categoryName", {
                                 rules: [{ required: true, message: 'Please input!' }]
                             })(<Input />)
                             }

@@ -4,7 +4,7 @@ import ajax from '../../utils/ajax';
 import { Button, message, Divider, Table, Modal, Form, Input } from 'antd';
 
 const mapStateToProps = state => ({
-    tax: state.tax.tax
+    tax: state.tax
 })
 
 const mapDispatchToProps = dispatch => ({
@@ -31,12 +31,11 @@ const confirm = Modal.confirm;
 class tax extends Component {
 
     componentDidMount() {
-        // ajax.get('./list').then((data) => {
-        //     console.log("GET SUCCESS")
-        //     this.props.get(data);
-        // }, (error) => {
-        //     console.log("GET ERROR", error)
-        // })
+        ajax.get('/tax').then((data) => {
+            this.props.get(data);
+        }, (error) => {
+            message.warning("云端数据获取失败")
+        })
     }
 
     state = {
@@ -53,7 +52,8 @@ class tax extends Component {
             data && data.id ? data : {
                 name: "",
                 description: "",
-                rate: ""
+                rate: "",
+                id:""
             }
         );
     }
@@ -66,9 +66,30 @@ class tax extends Component {
         this.props.form.validateFields((err, values) => {
             if (!err) {
                 if (this.state.isAdd) {
-                    console.log('Add')
+                    // 添加记录的操作
+                    values.need_id = true;
+                    ajax.post("/tax",values).then((data)=>{
+                        values.id=data.id;
+                        this.props.add(values);
+                        message.success("添加成功");
+                        this.setState({
+                            modalVisible:false
+                        })
+                    },()=>{
+                        message.error("添加失败")
+                    })
                 } else {
-                    console.log('Edit')
+                    // 修改记录的操作
+                    ajax.put("/tax",values).then(()=>{
+                        console.log("EDIT DATA",values)
+                        this.props.edit(values);
+                        message.success("修改成功");
+                        this.setState({
+                            modalVisible:false
+                        })
+                    },()=>{
+                        message.error("修改失败")
+                    })
                 }
             }
         });
@@ -83,7 +104,7 @@ class tax extends Component {
             okType: 'danger',
             cancelText: '取消',
             onOk: () => {
-                ajax.delete('/list', { params: { id } }).then((data) => {
+                ajax.delete('/tax', { params: { id } }).then(() => {
                     this.props.del({ id });
                     message.success("删除成功")
                 }, (error) => {
@@ -129,15 +150,16 @@ class tax extends Component {
             wrapperCol: {
                 xs: { span: 24 },
                 sm: { span: 16 },
-            },
+            }
         };
+        const {tax} = this.props;
         return (
             <div className="tax" id="tax">
                 <div className="topButtons">
                     <Button type="primary" onClick={this.showModal.bind(this)}>新增记录</Button>
                 </div>
                 <div className="tableCon">
-                    <Table columns={this.columns} dataSource={this.props.tax} rowKey="id" />
+                    <Table columns={this.columns} dataSource={tax} rowKey="id" />
                 </div>
                 <Modal
                     title="Edit Tax"
@@ -146,6 +168,7 @@ class tax extends Component {
                     onCancel={this.hideModal.bind(this)}
                 >
                     <Form>
+                        {getFieldDecorator("id")(<Input type='hidden' />)}
                         <Form.Item label="name" {...formItemLayout}>
                             {getFieldDecorator("name", {
                                 rules: [{ required: true, message: 'Please input!' }]
