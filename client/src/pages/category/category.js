@@ -44,7 +44,7 @@ class category extends Component {
     }
 
     componentDidMount() {
-        ajax.get('/category').then((data) => {
+        ajax.get('/cloudmenu/category').then((data) => {
             this.props.get(data);
         }, (error) => {
             message.warning("云端数据获取失败")
@@ -75,7 +75,7 @@ class category extends Component {
     }
     handleAdd(data) {
         data.need_id = true;
-        ajax.post("/category",data).then((response)=>{
+        ajax.post("/cloudmenu/category",data).then((response)=>{
             data.id=response.id;
             data.saleItems=[];
             data.tax=[];
@@ -109,7 +109,7 @@ class category extends Component {
             okType: 'danger',
             cancelText: '取消',
             onOk: () => {
-                ajax.delete('/category', { params: { id } }).then((data) => {
+                ajax.delete('/cloudmenu/category', { params: { id } }).then((data) => {
                     this.props.del({ id });
                     message.success("删除成功")
                 }, (error) => {
@@ -119,7 +119,7 @@ class category extends Component {
         });
     }
 
-    copyCategory() {
+    copyCategory(data) {
         confirm({
             title: '复制',
             content: '确定复制此条记录?',
@@ -127,7 +127,16 @@ class category extends Component {
             okType: 'primary',
             cancelText: '取消',
             onOk: () => {
-                //
+                data.need_id=true;
+                data.saleItems.map(item=>{
+                    item.need_id=true;
+                    return item;
+                })
+                ajax.post('/cloudmenu/copyCategory', data).then((response)=>{
+                    this.props.add(response);
+                },()=>{
+                    message.error("复制失败")
+                })
             }
         });
     }
@@ -154,11 +163,7 @@ class category extends Component {
         title: 'Tax',
         dataIndex: 'tax',
         render: tax => (
-            <span>
-                {tax.map((item, index) => {
-                    return <span className="saleItem" key={index}>{item.name}</span>
-                })}
-            </span>
+            <span className="saleItem" key={tax.id}>{tax.name}</span>
         )
     }, {
         title: 'Options',

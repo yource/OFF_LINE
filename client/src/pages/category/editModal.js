@@ -1,6 +1,9 @@
 import React from 'react';
 import { connect } from 'react-redux';
-import { Modal, Button, Tabs, Table, Form, Input, Divider, Select } from 'antd';
+import { Modal, Button, Tabs, Table, Form, Input, Divider, Select, message } from 'antd';
+import ajax from '../../utils/ajax'
+import AddSaleModel from './addSaleModal'
+import EditSaleModel from './editSaleModal'
 const confirm = Modal.confirm;
 const Option = Select.Option;
 
@@ -8,28 +11,8 @@ const mapStateToProps = state => ({
     tax: state.tax
 })
 const mapDispatchToProps = dispatch => ({
-    editBasicInfo: (param) => dispatch({
+    editCategory: (param) => dispatch({
         type: 'CATEGORY_EDIT',
-        param
-    }),
-    addSale: (param) => dispatch({
-        type: 'ADD_CATEGORY_SALE',
-        param
-    }),
-    editSale: (param) => dispatch({
-        type: 'EDIT_CATEGORY_SALE',
-        param
-    }),
-    deleteSale: (param) => dispatch({
-        type: 'DELETE_CATEGORY_SALE',
-        param
-    }),
-    addCategoryTax: (param) => dispatch({
-        type: "ADD_CATEGORY_TAX",
-        param
-    }),
-    deleteCategoryTax: (param) => dispatch({
-        type: "DELETE_CATEGORY_TAX",
         param
     })
 })
@@ -37,21 +20,84 @@ const mapDispatchToProps = dispatch => ({
 const TabPane = Tabs.TabPane;
 
 class editModal extends React.Component {
-    // this.props.form.setFieldsValue(this.props.data);
 
     state = {
         editSaleVisible: false,
         editSaleData: {},
         addSaleVisible: false,
-        addSaleData: {
-
-        },
-        choose:""
+        choose: ""
     }
-    showEditSale() { }
-    hideEditSale() { }
-    showAddSale() { }
-    hideAddSale() { }
+
+    editCategory() {
+        this.props.form.validateFields((err, values) => {
+            if (!err) {
+                ajax.put("/cloudmenu/category", values).then((data) => {
+                    this.props.editCategory(Object.assign(this.props.data, values));
+                    message.success("修改成功");
+                }, () => {
+                    message.error("修改失败")
+                })
+            }
+        });
+    }
+
+    showEditSale(data) {
+        this.setState({
+            editSaleVisible: true,
+            editSaleData: data
+        })
+    }
+    hideEditSale() {
+        this.setState({
+            editSaleVisible: false
+        })
+    }
+    handleEditSale(data) {
+        data.categoryId = this.props.data.id;
+        ajax.put('/cloudmenu/sale-item', data).then(() => {
+            let index = this.props.data.saleItems.findIndex((item) => {
+                return item.id === data.id
+            })
+            this.props.data.saleItems[index] = data;
+            this.props.editCategory(this.props.data)
+            message.success("修改成功")
+            this.setState({
+                addSaleVisible: false
+            })
+        }, (error) => {
+            message.error("修改失败")
+        })
+        this.setState({
+            editSaleVisible: false
+        })
+    }
+
+    showAddSale() {
+        this.setState({
+            addSaleVisible: true
+        })
+    }
+    hideAddSale() {
+        this.setState({
+            addSaleVisible: false
+        })
+    }
+    handleAddSale(data) {
+        data.categoryId = this.props.data.id;
+        data.need_id = true;
+        ajax.post('/cloudmenu/sale-item', data).then((response) => {
+            data.id = response.id;
+            this.props.data.saleItems.push(data);
+            this.props.editCategory(this.props.data)
+            message.success("添加成功")
+            this.setState({
+                addSaleVisible: false
+            })
+        }, (error) => {
+            message.error("添加失败")
+        })
+    }
+
     showDeleteSale(id) {
         confirm({
             title: '删除',
@@ -60,17 +106,21 @@ class editModal extends React.Component {
             okType: 'danger',
             cancelText: '取消',
             onOk: () => {
-                // ajax.delete('/list',{params:{id}}).then((data)=>{
-                //     this.props.del({id});
-                //     message.success("删除成功")
-                // },(error)=>{
-                //     message.error("删除失败")
-                // })
+                ajax.delete('/cloudmenu/sale-item', { params: { id } }).then((data) => {
+                    let index = this.props.data.saleItems.findIndex((item) => {
+                        return item.id === id;
+                    })
+                    this.props.data.saleItems.splice(index, 1);
+                    this.props.editCategory(this.props.data);
+                    message.success("删除成功")
+                }, (error) => {
+                    message.error("删除失败")
+                })
             }
         });
     }
 
-    deleteTax() {
+    deleteTax(id) {
         confirm({
             title: '删除',
             content: '确定删除此条记录?',
@@ -78,21 +128,33 @@ class editModal extends React.Component {
             okType: 'danger',
             cancelText: '取消',
             onOk: () => {
-                // ajax.delete('/list',{params:{id}}).then((data)=>{
-                //     this.props.del({id});
-                //     message.success("删除成功")
-                // },(error)=>{
-                //     message.error("删除失败")
-                // })
+                let newData = Object.assign({},this.props.data);
+                newData.tax={};
+                ajax.put('/cloudmenu/category', ).then((data) => {
+                    this.props.data.tax = {};
+                    this.props.editCategory(newData);
+                    message.success("删除成功")
+                }, (error) => {
+                    message.error("删除失败")
+                })
             }
         });
     }
-    addTax() { }
+    addTax() {
+        let newData = Object.assign({}, this.props.data);
+        newData.tax = this.props.tax.find(item => item.id === this.state.choose);
+        ajax.put('/cloudmenu/category', newData).then(() => {
+            this.props.data.tax = this.props.tax.find(item => item.id === this.state.choose)
+            this.props.editCategory(newData);
+            message.success("添加成功")
+        }, (error) => {
+            message.error("添加失败")
+        })
+    }
 
     handleChange(value) {
-        console.log(value)
         this.setState({
-            choose:value
+            choose: value
         })
     }
 
@@ -166,39 +228,51 @@ class editModal extends React.Component {
                         <TabPane tab="Basic Info" key="1">
                             <div style={{ lineHeight: '50px' }}>
                                 <Form>
-                                    {getFieldDecorator("id")(<Input type='hidden' />)}
+                                    {getFieldDecorator("id", {
+                                        initialValue: data.id,
+                                    })(<Input type='hidden' />)}
                                     <Form.Item label="name" {...formItemLayout}>
                                         {getFieldDecorator("categoryName", {
+                                            initialValue: data.categoryName,
                                             rules: [{ required: true, message: 'Please input!' }]
                                         })(<Input />)
                                         }
                                     </Form.Item>
                                     <Form.Item label="description" {...formItemLayout}>
                                         {getFieldDecorator("description", {
+                                            initialValue: data.description,
                                             rules: [{ required: true, message: 'Please input!' }]
                                         })(<Input />)
                                         }
                                     </Form.Item>
                                 </Form>
-                                <p style={{ textAlign: 'center' }}><Button type="primary">确定</Button></p>
+                                <p style={{ textAlign: 'center' }}><Button type="primary" onClick={this.editCategory.bind(this)}>修改</Button></p>
                             </div>
                         </TabPane>
                         <TabPane tab="Sale Item" key="2">
                             <Table dataSource={data.saleItems} columns={saleColumns} rowKey="id" pagination={false} />
-                            <p style={{ textAlign: 'center', marginTop: '20px' }}><Button type="primary">新增</Button></p>
+                            <p style={{ textAlign: 'center', marginTop: '20px' }}><Button type="primary" onClick={this.showAddSale.bind(this)}>新增</Button></p>
                         </TabPane>
                         <TabPane tab="Tax" key="3">
-                            <Table dataSource={data.tax} columns={taxColumns} rowKey="id" pagination={false} />
-                            <div style={{ textAlign: 'center', marginTop: '20px' }}>
-                                <Select style={{ width: 180,marginRight:"20px" }} onChange={this.handleChange.bind(this)} placeholder="请选择tax">
-                                        {this.props.tax.map((item,index)=>(<Option value={item.id} key={item.id}>{item.name}</Option>))}
-                                </Select>
-                                <Button type="primary">新增</Button>
-                            </div>
+                            <Table dataSource={data.tax && data.tax.id?[data.tax]:[]} columns={taxColumns} rowKey="id" pagination={false} />
+                            {(data.tax && data.tax.id) ? (
+                                <div></div>
+                            ) : (
+                                    
+                                    <div style={{ textAlign: 'center', marginTop: '20px' }}>
+                                        <Select style={{ width: 180, marginRight: "20px" }} onChange={this.handleChange.bind(this)} placeholder="请选择tax">
+                                            {this.props.tax.map((item, index) => (<Option value={item.id} key={item.id}>{item.name}</Option>))}
+                                        </Select>
+                                        <Button type="primary" onClick={this.addTax.bind(this)}>新增</Button>
+                                    </div>
+                                )
+                            }
                         </TabPane>
                     </Tabs>
+                    <AddSaleModel visible={this.state.addSaleVisible} handleCancel={this.hideAddSale.bind(this)} handleOk={this.handleAddSale.bind(this)}></AddSaleModel>
+                    <EditSaleModel data={this.state.editSaleData} visible={this.state.editSaleVisible} handleCancel={this.hideEditSale.bind(this)} handleOk={this.handleEditSale.bind(this)}></EditSaleModel>
                 </div>
-            </Modal>
+            </Modal >
         );
     }
 }

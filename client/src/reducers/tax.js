@@ -5,7 +5,8 @@ const tax = (state = [{
         description: "some tax tax",
         id: "1",
         name: "tax1",
-        rate: 0
+        rate: 0,
+
     }]
 , action) => {
     switch (action.type) {

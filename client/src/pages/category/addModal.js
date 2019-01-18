@@ -6,13 +6,14 @@ class detaiModal extends React.Component {
     submit(){
         this.props.form.validateFields((err, values) => {
             if (!err) {
-                this.props.handleOk(values)
+                this.props.form.resetFields();
+                this.props.handleOk(values);
             }
         });
     }
 
     render() {
-        const { getFieldDecorator } = this.props.form;
+        const { getFieldDecorator, resetFields } = this.props.form;
         const formItemLayout = {
             labelCol: {
                 xs: { span: 24 },
@@ -28,7 +29,7 @@ class detaiModal extends React.Component {
                 title="Add Category"
                 visible={this.props.visible}
                 onOk={this.submit.bind(this)}
-                onCancel={() => { this.props.handleCancel() }}
+                onCancel={() => { resetFields();this.props.handleCancel() }}
             >
                 <div>
                     <Form>

@@ -55,22 +55,71 @@ window.addEventListener("lineOff", () => {
  * 递归执行ajax
  */
 function syncLog(arr, idx) {
-    axios(arr[idx]).then(() => {
+    var config = arr[idx];
+    axios(config).then((response) => {
+        //ajax完成，删除log记录
         database.transaction(['log'], 'readwrite').objectStore('log').delete(arr[idx].indexedKeyPath);
+        // 遍历id，写入idMap表
+        var cids = [];
+        if (config.data) {
+            cids = getClientID(config.data, [], []);
+        } else if (config.param) {
+            cids = getClientID(config.param, [], []);
+        }
+        if (cids.length > 0) {
+            var sids = cids.map(item => {
+                var sid = Object.assign({}, response.data);
+                if (item.position.length > 0) {
+                    for (var i = 0; i < item.position.length; i++) {
+                        sid = sid[item.position[i]]
+                    };
+                    item.sid = sid.id;
+                } else {
+                    item.sid = sid.id
+                }
+                return item;
+            })
+            sids.map(item => {
+                database.transaction(['idMap'], 'readwrite').objectStore('idMap').add({
+                    cid: item.cid,
+                    sid: item.sid
+                });
+                return item;
+            })
+        }
+
+
+        getClientID(config, [], []);
+        // 进行下一个ajax同步
         if (idx > 0) {
-            setTimeout(()=>{
+            setTimeout(() => {
                 syncLog(arr, idx - 1);
-            },10)
+            }, 10)
         } else {
             console.log("log 处理完成")
         }
     }, (error) => {
-        if (idx > 0) {
-            syncLog(arr, idx - 1);
-        } else {
-            console.log("log 处理完成")
-        }
+        console.log("log同步失败 ", idx)
     })
+}
+
+function getClientID(obj, position, result) {
+    if (obj instanceof Array === true) {
+        return obj.map((item, index) => {
+            return getClientID(item, [...position, index], result)
+        })
+    } else if (typeof obj === "object" && obj != null) {
+        if (obj.need_id) {
+            result.push({
+                cid: obj.id,
+                position: position
+            })
+        }
+        Object.keys(obj).forEach(key => {
+            getClientID(obj[key], [...position, key], result)
+        })
+    }
+    return result;
 }
 
 /**
@@ -143,6 +192,11 @@ openDB.onupgradeneeded = (event) => {
         os.add({ stateKey: "state", stateInit: true });
         console.log('state表 新建成功');
     }
+    // 新建idMap表
+    if (!database.objectStoreNames.contains("idMap")) {
+        database.createObjectStore("idMap", { keyPath: "cid" });
+        console.log('state表 新建成功');
+    }
 };
 
 openDB.onerror = function (event) {
@@ -173,4 +227,13 @@ db.saveState = function (state) {
         console.log("SAVE STATE ERROR")
     }
 }
+
+//saveClientId
+db.saveClientId = function (clientId) {
+    this.database.transaction(['idMap'], 'readwrite').objectStore('idMap').add({
+        cid: clientId
+    })
+}
+
+
 export default db;

@@ -53,17 +53,13 @@ class detaiModal extends React.Component {
                                     <Col span={8}>Description:</Col>
                                     <Col span={16}>{data.description}</Col>
                                 </Row>
-                                <Row>
-                                    <Col span={8}>Last Updated By:</Col>
-                                    <Col span={16}>{data.lastUpdatedBy}</Col>
-                                </Row>
                             </div>
                         </TabPane>
                         <TabPane tab="Sale Item" key="2">
                             <Table dataSource={data.saleItems} columns={saleColumns} rowKey="id" pagination={false} />
                         </TabPane>
                         <TabPane tab="Tax" key="3">
-                            <Table dataSource={data.tax} columns={taxColumns} rowKey="id" pagination={false} />
+                            <Table dataSource={data.tax && data.tax.id?[data.tax]:[]} columns={taxColumns} rowKey="id" pagination={false} />
                         </TabPane>
                     </Tabs>
                 </div>

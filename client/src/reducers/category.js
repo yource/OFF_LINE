@@ -23,12 +23,12 @@ const category = (state = [{
         printerNames: ["a", "bb"],
         thumbPath: "path1path1path1"
     }],
-    tax: [{
+    tax: {
         description: "some tax tax",
         id: "1",
         name: "tax1",
         rate: 0
-    }]
+    }
 }], action) => {
     switch (action.type) {
 
@@ -70,23 +70,14 @@ const category = (state = [{
             newState.splice(index, 1);
             return newState;
 
-        //在category中增加sale
-        case 'ADD_CATEGORY_SALE':
-            return state;
-        //在category中修改sale
-        case 'EDIT_CATEGORY_SALE':
-            return state;
-        //在category中删除sale
-        case 'DELETE_CATEGORY_SALE':
-            return state;
-
-        // 在category中增加tax
-        case 'ADD_CATEGORY_TAX':
-            return state;
-
-        // 在category中删除tax
-        case 'DELETE_CATEGORY_TAX':
-            return state;
+        // 当一个tax被删除时，同时删除此tax在category中的记录
+        case 'CATEGORY_DELETE_TAX':
+            return state.map(item=>{
+                if(item.tax.id===action.param.id){
+                    return Object.assign({},item,{tax:{}})
+                }
+                return item;
+            })
 
         default:
             return state
