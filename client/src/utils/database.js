@@ -6,6 +6,12 @@ const heartbeatTime = 1000;  //心跳检测的事件间隔
 const reconnectTime = 20000; //尝试重连的时间间隔
 const websocketUrl = "ws://localhost:8888/admin";
 // const websocketUrl = "ws://192.168.1.141:8080/cloudmenu/websocket/admin";
+let db = {
+    database: null, //数据库对象
+    idMap: {}, //保存id对应关系
+    idClear: [] //保存已同步的id，用于删除多余数据
+};
+let database = null;
 
 /**
  * 注册全局lineOn/lineOff/databaseReady事件
@@ -80,16 +86,11 @@ function syncLog(arr, idx) {
                 return item;
             })
             sids.map(item => {
-                database.transaction(['idMap'], 'readwrite').objectStore('idMap').add({
-                    cid: item.cid,
-                    sid: item.sid
-                });
+                db.idMap[item.cid] = item.sid;
                 return item;
             })
         }
 
-
-        getClientID(config, [], []);
         // 进行下一个ajax同步
         if (idx > 0) {
             setTimeout(() => {
@@ -164,10 +165,6 @@ const wsReconnect = () => {
  * 后续打开/刷新/重连时，更新数据
  */
 
-let db = {
-    database: null //数据库对象
-};
-let database = null;
 let openDB = window.indexedDB.open("menusifu");
 
 openDB.onsuccess = (event) => {
@@ -186,16 +183,12 @@ openDB.onupgradeneeded = (event) => {
         database.createObjectStore("log", { autoIncrement: true });
         console.log('log表 新建成功');
     }
-    // 新建state表
-    if (!database.objectStoreNames.contains("state")) {
-        let os = database.createObjectStore("state", { keyPath: "stateKey" });
-        os.add({ stateKey: "state", stateInit: true });
-        console.log('state表 新建成功');
-    }
-    // 新建idMap表
-    if (!database.objectStoreNames.contains("idMap")) {
-        database.createObjectStore("idMap", { keyPath: "cid" });
-        console.log('state表 新建成功');
+    // 新建systerm表，包含redux初始化数据和id对应数据
+    if (!database.objectStoreNames.contains("systerm")) {
+        let os = database.createObjectStore("systerm", { keyPath: "keyPath" });
+        os.add({ keyPath: "state", init: true });
+        os.add({ keyPath: "id", init: true });
+        console.log('systerm表 新建成功');
     }
 };
 
@@ -216,24 +209,50 @@ db.log = function (config) {
 
 // 保存全局state
 db.saveState = function (state) {
-    let request = this.database.transaction(['state'], 'readwrite').objectStore('state').put({
-        ...state,
-        stateKey: "state"
+    this.database.transaction(['systerm'], 'readwrite').objectStore('systerm').put({
+        state,
+        keyPath: "state",
+        init: false
     });
-    request.onsuccess = function () {
-        console.log("SAVE STATE SUCCESS")
-    }
-    request.onerror = function () {
-        console.log("SAVE STATE ERROR")
-    }
 }
 
-//saveClientId
-db.saveClientId = function (clientId) {
-    this.database.transaction(['idMap'], 'readwrite').objectStore('idMap').add({
-        cid: clientId
+// 保存idMap
+db.saveIdMap = function (clientId) {
+    this.database.transaction(['systerm'], 'readwrite').objectStore('systerm').put({
+        keyPath: "id",
+        map: db.idMap,
+        init: false
     })
 }
 
+// 替换id
+db.replaceId = function (obj) {
+    if (obj instanceof Array === true) {
+        return obj.map(item => {
+            return db.replaceId(item)
+        })
+    } else if (typeof obj === "object" && obj != null) {
+        if (obj.id && !!db.idMap[obj.id]) {
+            obj.id = db.idMap[obj.id];
+            if (obj.need_id) {
+                obj.need_id = false;
+            }
+            if (db.idClear.indexOf(obj.id) < 0) {
+                db.idClear.push(obj.id)
+            }
+        }
+        Object.keys(obj).forEach(key => {
+            db.replaceId(obj[key])
+        })
+        return obj;
+    }
+}
+
+// 清理idMap
+db.clearIdMap = function () {
+    for (var i = 0; i < db.idClear.length; i++) {
+        delete db.idMap[db.idClear[i]]
+    }
+}
 
 export default db;

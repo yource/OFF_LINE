@@ -144,7 +144,7 @@ class editModal extends React.Component {
         let newData = Object.assign({}, this.props.data);
         newData.tax = this.props.tax.find(item => item.id === this.state.choose);
         ajax.put('/cloudmenu/category', newData).then(() => {
-            this.props.data.tax = this.props.tax.find(item => item.id === this.state.choose)
+            this.props.data.tax = newData.tax;
             this.props.editCategory(newData);
             message.success("添加成功")
         }, (error) => {

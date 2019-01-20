@@ -25,10 +25,17 @@ function ajax() {
                         message = makeID(Object.assign({}, config.data))
                         config.data = message;
                     } else if (config.param && checkNeedID(config.param, false)) {
-                        message = makeID(Object.assign({}, config.data));
+                        message = makeID(Object.assign({}, config.param));
                         config.param = message;
                     }
                     source.cancel(message);
+                }
+            } else {
+                // 在线状态下，替换参数中的本地id为服务器id
+                if(config.data){
+                    config.data = replaceId(config.data);
+                }else if (config.param){
+                    config.param = replaceId(config.param);
                 }
             }
             return config;
@@ -81,10 +88,28 @@ function makeID(obj) {
     } else if (typeof obj === "object" && obj != null) {
         if (obj.need_id) {
             obj.id = uid();
-            db.saveClientId(obj.id);
         }
         Object.keys(obj).forEach(key => {
             makeID(obj[key])
+        })
+        return obj;
+    }
+}
+
+function replaceId(obj){
+    if (obj instanceof Array === true) {
+        return obj.map(item => {
+            return replaceId(item)
+        })
+    } else if (typeof obj === "object" && obj != null) {
+        if (obj.id && !!db.idMap[obj.id]) {
+            obj.id = db.idMap[obj.id];
+            if(obj.need_id){
+                obj.need_id = false;
+            }
+        }
+        Object.keys(obj).forEach(key => {
+            replaceId(obj[key])
         })
         return obj;
     }
