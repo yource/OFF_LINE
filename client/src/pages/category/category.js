@@ -9,7 +9,7 @@ import EditModal from './editModal'
 
 const mapStateToProps = state => ({
     category: state.category,
-    tax:state.tax
+    tax: state.tax
 })
 
 const mapDispatchToProps = dispatch => ({
@@ -40,12 +40,12 @@ class category extends Component {
         editVisible: false,
         addVisible: false,
         detailData: {},
-        editData:{}
+        editData: {}
     }
 
     componentDidMount() {
-        ajax.get('/cloudmenu/category').then((data) => {
-            this.props.get(data);
+        ajax.get('/cloudmenu/category/').then((response) => {
+            this.props.get(response);
         }, (error) => {
             message.warning("云端数据获取失败")
         })
@@ -75,29 +75,29 @@ class category extends Component {
     }
     handleAdd(data) {
         data.need_id = true;
-        ajax.post("/cloudmenu/category",data).then((response)=>{
-            data.id=response.id;
-            data.saleItems=[];
-            data.tax=[];
+        ajax.post("/cloudmenu/category/", data).then((response) => {
+            data.id = response.id;
+            data.saleItems = [];
+            data.tax = [];
             this.props.add(data);
             message.success("添加成功");
             this.setState({
-                addVisible:false
+                addVisible: false
             })
-        },()=>{
+        }, () => {
             message.error("添加失败")
         })
     }
 
     showEdit(data) {
         this.setState({
-            editVisible:true,
-            editData:data
+            editVisible: true,
+            editData: data
         })
     }
-    hideEdit(){
+    hideEdit() {
         this.setState({
-            editVisible:false
+            editVisible: false
         })
     }
 
@@ -109,7 +109,7 @@ class category extends Component {
             okType: 'danger',
             cancelText: '取消',
             onOk: () => {
-                ajax.delete('/cloudmenu/category', { params: { id } }).then((data) => {
+                ajax.delete('/cloudmenu/category/' + id).then((data) => {
                     this.props.del({ id });
                     message.success("删除成功")
                 }, (error) => {
@@ -127,14 +127,16 @@ class category extends Component {
             okType: 'primary',
             cancelText: '取消',
             onOk: () => {
-                data.need_id=true;
-                data.saleItems.map(item=>{
-                    item.need_id=true;
-                    return item;
-                })
-                ajax.post('/cloudmenu/copyCategory', data).then((response)=>{
+                data.need_id = true;
+                if (data.saleItems && data.saleItems.length > 0) {
+                    data.saleItems.map(item => {
+                        item.need_id = true;
+                        return item;
+                    })
+                }
+                ajax.post('/cloudmenu/category/copy/' + data.id, data).then((response) => {
                     this.props.add(response);
-                },()=>{
+                }, () => {
                     message.error("复制失败")
                 })
             }
@@ -154,17 +156,21 @@ class category extends Component {
     }, {
         title: 'Sale',
         dataIndex: 'saleItems',
-        render: saleItems => (
-            <span>
-                {saleItems.map((item, index) => <span className="saleItem" key={index}>{item.itemName}</span>)}
-            </span>
-        )
+        render: saleItems => {
+            return saleItems && saleItems.length>0 ? (
+                <span>
+                    {saleItems.map((item, index) => <span className="saleItem" key={index}>{item.itemName}</span>)}
+                </span>
+            ) : (<span></span>)
+        }
     }, {
         title: 'Tax',
         dataIndex: 'tax',
-        render: tax => (
-            <span className="saleItem" key={tax.id}>{tax.name}</span>
-        )
+        render: tax => {
+            return tax && tax.id ? (
+                <span className="saleItem" key={tax.id}>{tax.name}</span>
+            ) : (<span></span>)
+        }
     }, {
         title: 'Options',
         width: 250,
@@ -182,7 +188,7 @@ class category extends Component {
     }];
 
     render() {
-        const {category} = this.props;
+        const { category } = this.props;
         return (
             <div className="list" id="list">
                 <div className="topButtons">

@@ -1,7 +1,7 @@
 import 'antd/dist/antd.css'; 
 import './App.css';
 import React, { Component } from 'react';
-import { Layout, Menu } from 'antd';
+import { Layout, Menu, notification  } from 'antd';
 import { BrowserRouter as Router, Route, Link } from "react-router-dom";
 import Home from './pages/home/home'
 import Test from './pages/test/test'
@@ -29,6 +29,20 @@ class App extends Component {
   }
 
   render() {
+    window.addEventListener("lineOn",function(){
+      notification.success({
+        message: '网络正常',
+        description: '您的设备已与服务器连接成功',
+      });
+    })
+
+    window.addEventListener("lineOff", function () {
+      notification.warning({
+        message: '断开连接',
+        description: '您的设备与服务器断开连接，请检查网络设置',
+      });
+    })
+
     return (
       <Router>
         <div className="App" id="App">

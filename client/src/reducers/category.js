@@ -1,35 +1,7 @@
 let index;
 let newState;
 
-const category = (state = [{
-    categoryName: 'T1',
-    description: 'local test data',
-    id: "1",
-    lastUpdatedBy: 'admin',
-    saleItems: [{
-        description: 'local test saleItem',
-        id: "11",
-        itemName: "sale1",
-        lastUpdatedBy: "admin",
-        price: 99,
-        printerNames: "aaaaaa",
-        thumbPath: "path1path1path1"
-    }, {
-        description: 'local test saleItem',
-        id: "12",
-        itemName: "sale2",
-        lastUpdatedBy: "admin",
-        price: 88,
-        printerNames: ["a", "bb"],
-        thumbPath: "path1path1path1"
-    }],
-    tax: {
-        description: "some tax tax",
-        id: "1",
-        name: "tax1",
-        rate: 0
-    }
-}], action) => {
+const category = (state = [], action) => {
     switch (action.type) {
 
         // 从服务器获取数据，与本地数据合并
@@ -72,12 +44,12 @@ const category = (state = [{
 
         // 当一个tax被删除时，同时删除此tax在category中的记录
         case 'CATEGORY_DELETE_TAX':
-            return state.map(item=>{
-                if(item.tax.id===action.param.id){
+            return state.length > 0 ? state.map(item=>{
+                if (item.tax && item.tax.id && item.tax.id===action.param.id){
                     return Object.assign({},item,{tax:{}})
                 }
                 return item;
-            })
+            }):state;
 
         default:
             return state

@@ -7,9 +7,12 @@ import './utils/storage'
 import db from './utils/database'
 import App from './App';
 
+import * as serviceWorker from './serviceWorker';
+serviceWorker.register();
+
 window.addEventListener("databaseReady", () => {
     var store;
-    var os = db.database.transaction(['systerm'], 'readwrite').objectStore('systerm');
+    var os = db.database.transaction(['system'], 'readwrite').objectStore('system');
     var storeRequest = os.get("state");
     storeRequest.onsuccess = function () {
         var idRequest = os.get("id");

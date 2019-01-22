@@ -31,7 +31,7 @@ class editModal extends React.Component {
     editCategory() {
         this.props.form.validateFields((err, values) => {
             if (!err) {
-                ajax.put("/cloudmenu/category", values).then((data) => {
+                ajax.put("/cloudmenu/category/", values).then((data) => {
                     this.props.editCategory(Object.assign(this.props.data, values));
                     message.success("修改成功");
                 }, () => {
@@ -54,7 +54,8 @@ class editModal extends React.Component {
     }
     handleEditSale(data) {
         data.categoryId = this.props.data.id;
-        ajax.put('/cloudmenu/sale-item', data).then(() => {
+        data.mapId = "categoryId";
+        ajax.put('/cloudmenu/sale-item/', data).then(() => {
             let index = this.props.data.saleItems.findIndex((item) => {
                 return item.id === data.id
             })
@@ -84,9 +85,13 @@ class editModal extends React.Component {
     }
     handleAddSale(data) {
         data.categoryId = this.props.data.id;
+        data.mapId = "categoryId";
         data.need_id = true;
-        ajax.post('/cloudmenu/sale-item', data).then((response) => {
+        ajax.post('/cloudmenu/sale-item/', data).then((response) => {
             data.id = response.id;
+            if (!this.props.data.saleItems) {
+                this.props.data.saleItems = [];
+            }
             this.props.data.saleItems.push(data);
             this.props.editCategory(this.props.data)
             message.success("添加成功")
@@ -106,7 +111,7 @@ class editModal extends React.Component {
             okType: 'danger',
             cancelText: '取消',
             onOk: () => {
-                ajax.delete('/cloudmenu/sale-item', { params: { id } }).then((data) => {
+                ajax.delete('/cloudmenu/sale-item/' + id).then((data) => {
                     let index = this.props.data.saleItems.findIndex((item) => {
                         return item.id === id;
                     })
@@ -128,9 +133,9 @@ class editModal extends React.Component {
             okType: 'danger',
             cancelText: '取消',
             onOk: () => {
-                let newData = Object.assign({},this.props.data);
-                newData.tax={};
-                ajax.put('/cloudmenu/category', ).then((data) => {
+                let newData = Object.assign({}, this.props.data);
+                newData.tax = {};
+                ajax.put('/cloudmenu/category/').then((data) => {
                     this.props.data.tax = {};
                     this.props.editCategory(newData);
                     message.success("删除成功")
@@ -143,7 +148,7 @@ class editModal extends React.Component {
     addTax() {
         let newData = Object.assign({}, this.props.data);
         newData.tax = this.props.tax.find(item => item.id === this.state.choose);
-        ajax.put('/cloudmenu/category', newData).then(() => {
+        ajax.put('/cloudmenu/category/', newData).then(() => {
             this.props.data.tax = newData.tax;
             this.props.editCategory(newData);
             message.success("添加成功")
@@ -254,11 +259,11 @@ class editModal extends React.Component {
                             <p style={{ textAlign: 'center', marginTop: '20px' }}><Button type="primary" onClick={this.showAddSale.bind(this)}>新增</Button></p>
                         </TabPane>
                         <TabPane tab="Tax" key="3">
-                            <Table dataSource={data.tax && data.tax.id?[data.tax]:[]} columns={taxColumns} rowKey="id" pagination={false} />
+                            <Table dataSource={data.tax && data.tax.id ? [data.tax] : []} columns={taxColumns} rowKey="id" pagination={false} />
                             {(data.tax && data.tax.id) ? (
                                 <div></div>
                             ) : (
-                                    
+
                                     <div style={{ textAlign: 'center', marginTop: '20px' }}>
                                         <Select style={{ width: 180, marginRight: "20px" }} onChange={this.handleChange.bind(this)} placeholder="请选择tax">
                                             {this.props.tax.map((item, index) => (<Option value={item.id} key={item.id}>{item.name}</Option>))}

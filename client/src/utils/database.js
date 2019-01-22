@@ -1,11 +1,8 @@
 import axios from 'axios'
 
-let wss;
-let heartbeat;
-const heartbeatTime = 1000;  //心跳检测的事件间隔
-const reconnectTime = 20000; //尝试重连的时间间隔
-const websocketUrl = "ws://localhost:8888/admin";
-// const websocketUrl = "ws://192.168.1.141:8080/cloudmenu/websocket/admin";
+// const websocketUrl = 'ws://192.168.1.141:8080/cloudmenu/websocket/admin';
+const websocketUrl = 'ws://localhost:8888';
+
 let db = {
     database: null, //数据库对象
     idMap: {}, //保存id对应关系
@@ -17,7 +14,6 @@ let database = null;
  * 注册全局lineOn/lineOff/databaseReady事件
  * 监听方法 window.addEventListener("lineOn",callback)
  */
-window.storage.setItem("networkStatus", "unknow");
 
 const lineOn = document.createEvent('HTMLEvents');
 lineOn.initEvent('lineOn', false, false);
@@ -28,9 +24,29 @@ lineOff.initEvent('lineOff', false, false);
 const databaseReady = document.createEvent('HTMLEvents');
 databaseReady.initEvent('databaseReady', false, false);
 
+if (window.navigator.onLine) {
+    window.storage.setItem("networkStatus", "online");
+} else {
+    window.storage.setItem("networkStatus", "offline");
+    window.dispatchEvent(lineOff);
+}
+
 window.addEventListener("offline", function () {
     if (window.storage.getItem("networkStatus") !== "offline") {
-        window.dispatchEvent(lineOff)
+        window.dispatchEvent(lineOff);
+    }
+    if (!!wss) {
+        wss.close();
+        wss = null;
+    }
+});
+window.addEventListener("online", function () {
+    if (window.storage.getItem("networkStatus") !== "online") {
+        if (!!wss && !!wss.close) {
+            wss.close();
+        } else {
+            initWebsocket();
+        }
     }
 });
 window.addEventListener("lineOn", () => {
@@ -47,7 +63,9 @@ window.addEventListener("lineOn", () => {
             logger.unshift(config)
             cursor.continue();
         } else {
-            syncLog(logger, logger.length - 1)
+            if (logger.length > 0) {
+                syncLog(logger, logger.length - 1)
+            }
         }
     };
 })
@@ -62,19 +80,30 @@ window.addEventListener("lineOff", () => {
  */
 function syncLog(arr, idx) {
     var config = arr[idx];
+    if (config.cancelToken) {
+        delete config.cancelToken;
+    }
+    if (config.data) {
+        config.data = replaceId(config.data);
+    } else if (config.param) {
+        config.param = replaceId(config.param);
+    }
+    // 遍历id，写入idMap表
+    var cids = [];
+
+    if (config.data) {
+        cids = getClientID(config.data, [], []);
+    } else if (config.param) {
+        cids = getClientID(config.param, [], []);
+    }
+
     axios(config).then((response) => {
         //ajax完成，删除log记录
         database.transaction(['log'], 'readwrite').objectStore('log').delete(arr[idx].indexedKeyPath);
-        // 遍历id，写入idMap表
-        var cids = [];
-        if (config.data) {
-            cids = getClientID(config.data, [], []);
-        } else if (config.param) {
-            cids = getClientID(config.param, [], []);
-        }
+
         if (cids.length > 0) {
             var sids = cids.map(item => {
-                var sid = Object.assign({}, response.data);
+                var sid = response.data;
                 if (item.position.length > 0) {
                     for (var i = 0; i < item.position.length; i++) {
                         sid = sid[item.position[i]]
@@ -98,9 +127,10 @@ function syncLog(arr, idx) {
             }, 10)
         } else {
             console.log("log 处理完成")
+
         }
     }, (error) => {
-        console.log("log同步失败 ", idx)
+        console.log("log同步失败 ", error)
     })
 }
 
@@ -115,6 +145,7 @@ function getClientID(obj, position, result) {
                 cid: obj.id,
                 position: position
             })
+            delete obj.id
         }
         Object.keys(obj).forEach(key => {
             getClientID(obj[key], [...position, key], result)
@@ -127,36 +158,99 @@ function getClientID(obj, position, result) {
  * websocket心跳机制
  * 检测在线状态，触发lineOn/lineOff事件
  **/
+let wss = null;
+let heartbeat;
+let heartbeatResponseCheck;
+const heartbeatTime = 1000;  //心跳检测的事件间隔
+const reconnectTime = 2000;  //尝试重连的时间间隔
+let count = 0;
+let msgCount = 0;
 const initWebsocket = () => {
+    if (!window.navigator.onLine) {
+        return;
+    }
     wss = new WebSocket(websocketUrl);
     wss.onopen = () => {
         if (window.storage.getItem("networkStatus") !== "online") {
             window.dispatchEvent(lineOn)
         }
-        heartbeat = setInterval(() => {
-            wss.send("check connect")
-        }, heartbeatTime);
+        count++;
+        heartbeatCheck();
+        wss.onmessage = (msg) => {
+            msgCount++;
+            if (heartbeat) {
+                window.clearTimeout(heartbeat);
+                heartbeat = null;
+            }
+            if (heartbeatResponseCheck) {
+                window.clearTimeout(heartbeatResponseCheck)
+                heartbeatResponseCheck = null;
+            }
+            heartbeatCheck();
+        }
+        wss.onclose = () => {
+            hanldeWebscoketError()
+        }
     }
     wss.onerror = () => {
-        wss.close();
-    }
-    wss.onmessage = () => { }
-    wss.onclose = () => {
-        if (heartbeat) {
-            heartbeat = window.clearInterval(heartbeat);
+        if(wss.onclose){
+            wss.close();
+        }else{
+            hanldeWebscoketError()
         }
-        if (window.storage.getItem("networkStatus") !== "offline") {
-            window.dispatchEvent(lineOff)
-        }
-        wsReconnect();
     }
 }
 
-const wsReconnect = () => {
+const hanldeWebscoketError = function(){
+    count = 0;
+    msgCount = 0;
+    if (heartbeat) {
+        window.clearTimeout(heartbeat);
+        heartbeat = null;
+    }
+    if (heartbeatResponseCheck) {
+        window.clearTimeout(heartbeatResponseCheck)
+        heartbeatResponseCheck = null;
+    }
+    if (window.storage.getItem("networkStatus") !== "offline") {
+        window.dispatchEvent(lineOff)
+    }
+    wss = null;
     setTimeout(() => {
-        wss = null;
         initWebsocket();
     }, reconnectTime)
+}
+
+const heartbeatCheck = function () {
+    if (heartbeat) {
+        window.clearTimeout(heartbeat)
+        heartbeat = null;
+    }
+    if (heartbeatResponseCheck) {
+        window.clearTimeout(heartbeatResponseCheck)
+        heartbeatResponseCheck = null;
+    }
+
+    heartbeat = setTimeout(() => {
+        if (!wss || !wss.close) return;
+        count++;
+        wss.send(count);
+        heartbeatResponseCheck = setTimeout(() => {
+            if (count - msgCount > 0 && wss) {
+                if (window.storage.getItem("networkStatus") !== "offline") {
+                    window.dispatchEvent(lineOff)
+                }
+                wss.close()
+            }
+        }, heartbeatTime);
+    }, heartbeatTime);
+}
+
+window.onbeforeunload = function () {
+    if (wss.close){
+        wss.close();
+    }
+    wss = null;
 }
 
 /**
@@ -170,7 +264,6 @@ let openDB = window.indexedDB.open("menusifu");
 openDB.onsuccess = (event) => {
     database = event.target.result;
     db.database = event.target.result;
-    console.log('open indexedDB');
     window.dispatchEvent(databaseReady);
     initWebsocket();
 };
@@ -181,14 +274,12 @@ openDB.onupgradeneeded = (event) => {
     // 新建log表
     if (!database.objectStoreNames.contains("log")) {
         database.createObjectStore("log", { autoIncrement: true });
-        console.log('log表 新建成功');
     }
-    // 新建systerm表，包含redux初始化数据和id对应数据
-    if (!database.objectStoreNames.contains("systerm")) {
-        let os = database.createObjectStore("systerm", { keyPath: "keyPath" });
+    // 新建system表，包含redux初始化数据和id对应数据
+    if (!database.objectStoreNames.contains("system")) {
+        let os = database.createObjectStore("system", { keyPath: "keyPath" });
         os.add({ keyPath: "state", init: true });
         os.add({ keyPath: "id", init: true });
-        console.log('systerm表 新建成功');
     }
 };
 
@@ -209,7 +300,7 @@ db.log = function (config) {
 
 // 保存全局state
 db.saveState = function (state) {
-    this.database.transaction(['systerm'], 'readwrite').objectStore('systerm').put({
+    this.database.transaction(['system'], 'readwrite').objectStore('system').put({
         state,
         keyPath: "state",
         init: false
@@ -218,7 +309,7 @@ db.saveState = function (state) {
 
 // 保存idMap
 db.saveIdMap = function (clientId) {
-    this.database.transaction(['systerm'], 'readwrite').objectStore('systerm').put({
+    this.database.transaction(['system'], 'readwrite').objectStore('system').put({
         keyPath: "id",
         map: db.idMap,
         init: false
@@ -243,6 +334,29 @@ db.replaceId = function (obj) {
         }
         Object.keys(obj).forEach(key => {
             db.replaceId(obj[key])
+        })
+        return obj;
+    }
+}
+
+function replaceId(obj) {
+    if (obj instanceof Array === true) {
+        return obj.map(item => {
+            return replaceId(item)
+        })
+    } else if (typeof obj === "object" && obj != null) {
+        if (obj.id && db.idMap[obj.id]) {
+            obj.id = db.idMap[obj.id];
+            if (obj.need_id) {
+                obj.need_id = false;
+            }
+        }
+        if (obj.mapId) {
+            obj[obj.mapId] = db.idMap[obj[obj.mapId]] || obj[obj.mapId];
+            obj.mapId = false;
+        }
+        Object.keys(obj).forEach(key => {
+            replaceId(obj[key])
         })
         return obj;
     }

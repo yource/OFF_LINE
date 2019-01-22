@@ -88,7 +88,7 @@ storage.getCookie = function(key) {
     var cookies = document.cookie.split(";")
     var cookieValue;
     for (var i = 0; i < cookies.length; i++) {
-        if (key == cookies[i].split("=")[0]) {
+        if (key === cookies[i].split("=")[0]) {
             cookieValue = cookies[i].split("=")[1];
             break;
         }

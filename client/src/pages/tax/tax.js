@@ -35,7 +35,7 @@ const confirm = Modal.confirm;
 class tax extends Component {
 
     componentDidMount() {
-        ajax.get('/cloudmenu/tax').then((data) => {
+        ajax.get('/cloudmenu/tax/').then((data) => {
             this.props.get(data);
         }, (error) => {
             message.warning("云端数据获取失败")
@@ -72,7 +72,8 @@ class tax extends Component {
                 if (this.state.isAdd) {
                     // 添加记录的操作
                     values.need_id = true;
-                    ajax.post("/cloudmenu/tax",values).then((data)=>{
+                    delete values.id;
+                    ajax.post("/cloudmenu/tax/",values).then((data)=>{
                         values.id=data.id;
                         this.props.add(values);
                         message.success("添加成功");
@@ -84,7 +85,7 @@ class tax extends Component {
                     })
                 } else {
                     // 修改记录的操作
-                    ajax.put("/cloudmenu/tax",values).then(()=>{
+                    ajax.put("/cloudmenu/tax/",values).then(()=>{
                         console.log("EDIT DATA",values)
                         this.props.edit(values);
                         message.success("修改成功");
@@ -108,7 +109,7 @@ class tax extends Component {
             okType: 'danger',
             cancelText: '取消',
             onOk: () => {
-                ajax.delete('/cloudmenu/tax', { params: { id } }).then(() => {
+                ajax.delete('/cloudmenu/tax/' + id).then(() => {
                     this.props.del({ id });
                     this.props.deleteTaxInCategory({id});
                     message.success("删除成功")

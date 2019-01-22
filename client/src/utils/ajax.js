@@ -13,8 +13,7 @@ function ajax() {
         (config) => {
             if (window.storage.getItem("networkStatus") === "offline") {
                 // 对非get请求进行记录
-                if (config.method !== 'get') {
-                    db.log(JSON.stringify(config));
+                if (config.method !== 'get' && (!config.param || !config.param.id)) {
                     let source = CancelToken.source();
                     config.cancelToken = source.token;
                     let message = "REQUEST CANCEL";
@@ -28,6 +27,7 @@ function ajax() {
                         message = makeID(Object.assign({}, config.param));
                         config.param = message;
                     }
+                    db.log(JSON.stringify(config));
                     source.cancel(message);
                 }
             } else {
@@ -42,7 +42,6 @@ function ajax() {
         }
     );
     instance.interceptors.response.use(function (response) {
-        console.log("Before Response")
         if (response && response.data) {
             return response.data
         } else {
@@ -102,11 +101,15 @@ function replaceId(obj){
             return replaceId(item)
         })
     } else if (typeof obj === "object" && obj != null) {
-        if (obj.id && !!db.idMap[obj.id]) {
+        if (obj.id && db.idMap[obj.id]) {
             obj.id = db.idMap[obj.id];
             if(obj.need_id){
                 obj.need_id = false;
             }
+        }
+        if (obj.mapId){
+            obj[obj.mapId] = db.idMap[obj[obj.mapId]] || obj[obj.mapId];
+            obj.mapId = false;
         }
         Object.keys(obj).forEach(key => {
             replaceId(obj[key])
