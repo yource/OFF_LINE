@@ -32,10 +32,11 @@ function ajax() {
                 }
             } else {
                 // 在线状态下，替换参数中的本地id为服务器id
-                if(config.data){
+                if (config.data) {
                     config.data = replaceId(config.data);
-                }else if (config.param){
+                } else if (config.param) {
                     config.param = replaceId(config.param);
+                    
                 }
             }
             return config;
@@ -43,7 +44,11 @@ function ajax() {
     );
     instance.interceptors.response.use(function (response) {
         if (response && response.data) {
-            return response.data
+            var rep = response.data;
+            if (response.config.method === "get") {
+                rep = replaceServerId(rep)
+            }
+            return rep
         } else {
             return response
         }
@@ -95,24 +100,40 @@ function makeID(obj) {
     }
 }
 
-function replaceId(obj){
+function replaceId(obj) { //将参数中的本地id替换为服务器id
     if (obj instanceof Array === true) {
         return obj.map(item => {
             return replaceId(item)
         })
     } else if (typeof obj === "object" && obj != null) {
-        if (obj.id && db.idMap[obj.id]) {
-            obj.id = db.idMap[obj.id];
-            if(obj.need_id){
+        if (obj.id && db.idMap.c2s[obj.id]) {
+            obj.id = db.idMap.c2s[obj.id];
+            if (obj.need_id) {
                 obj.need_id = false;
             }
         }
-        if (obj.mapId){
-            obj[obj.mapId] = db.idMap[obj[obj.mapId]] || obj[obj.mapId];
+        if (obj.mapId) {
+            obj[obj.mapId] = db.idMap.c2s[obj[obj.mapId]] || obj[obj.mapId];
             obj.mapId = false;
         }
         Object.keys(obj).forEach(key => {
             replaceId(obj[key])
+        })
+        return obj;
+    }
+}
+
+function replaceServerId(obj) { //将返回值中的服务器id替换为本地id
+    if (obj instanceof Array === true) {
+        return obj.map(item => {
+            return replaceServerId(item)
+        })
+    } else if (typeof obj === "object" && obj != null) {
+        if (obj.id && db.idMap.s2c[obj.id]) {
+            obj.id = db.idMap.s2c[obj.id];
+        }
+        Object.keys(obj).forEach(key => {
+            replaceServerId(obj[key])
         })
         return obj;
     }

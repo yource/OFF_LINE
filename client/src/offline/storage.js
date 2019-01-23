@@ -1,3 +1,8 @@
+/**
+ * cookie/localStorage存储方法
+ * 附加为window属性
+ */
+
 var storage = {};
 
 // 是否支持localStorage
@@ -106,4 +111,3 @@ storage.clearCookie = function() {
 };
 
 window.storage = storage;
-export default storage;

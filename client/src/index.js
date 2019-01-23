@@ -17,7 +17,10 @@ window.addEventListener("databaseReady", () => {
     storeRequest.onsuccess = function () {
         var idRequest = os.get("id");
         idRequest.onsuccess = function () {
-            db.idMap = idRequest.result.map||{};
+            db.idMap = idRequest.result.map||{
+                c2s:{},
+                s2c:{}
+            };
             var initState = storeRequest.result.state;
             if (!storeRequest.result.init) {
                 initState = db.replaceId(initState);

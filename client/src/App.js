@@ -28,8 +28,8 @@ class App extends Component {
     });
   }
 
-  render() {
-    window.addEventListener("lineOn",function(){
+  componentDidMount(){
+    window.addEventListener("lineOn", function () {
       notification.success({
         message: '网络正常',
         description: '您的设备已与服务器连接成功',
@@ -42,7 +42,9 @@ class App extends Component {
         description: '您的设备与服务器断开连接，请检查网络设置',
       });
     })
+  }
 
+  render() {
     return (
       <Router>
         <div className="App" id="App">

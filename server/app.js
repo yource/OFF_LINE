@@ -111,7 +111,7 @@ wss.broadcast = function broadcast(ws, msg) {
 wss.on('connection', function connection(ws) {
     ws.send("websocket connect success");
     ws.on('message', function (msg) {
-        ws.send("connected");
+        ws.send(msg);
     });
 });
 

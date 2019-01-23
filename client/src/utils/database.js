@@ -5,8 +5,11 @@ const websocketUrl = 'ws://localhost:8888';
 
 let db = {
     database: null, //数据库对象
-    idMap: {}, //保存id对应关系
-    idClear: [] //保存已同步的id，用于删除多余数据
+    idMap: { //id对应关系：本地ID-服务端ID & 服务端ID-本地ID
+        c2s: {},
+        s2c: {}
+    },
+    idClear: []     //保存已同步的id，用于删除多余数据
 };
 let database = null;
 
@@ -115,7 +118,8 @@ function syncLog(arr, idx) {
                 return item;
             })
             sids.map(item => {
-                db.idMap[item.cid] = item.sid;
+                db.idMap.c2s[item.cid] = item.sid;
+                db.idMap.s2c[item.sid] = item.cid;
                 return item;
             })
         }
@@ -126,8 +130,7 @@ function syncLog(arr, idx) {
                 syncLog(arr, idx - 1);
             }, 10)
         } else {
-            console.log("log 处理完成")
-
+            console.log("ajax 同步完成")
         }
     }, (error) => {
         console.log("log同步失败 ", error)
@@ -193,15 +196,15 @@ const initWebsocket = () => {
         }
     }
     wss.onerror = () => {
-        if(wss.onclose){
+        if (wss.onclose) {
             wss.close();
-        }else{
+        } else {
             hanldeWebscoketError()
         }
     }
 }
 
-const hanldeWebscoketError = function(){
+const hanldeWebscoketError = function () {
     count = 0;
     msgCount = 0;
     if (heartbeat) {
@@ -247,7 +250,7 @@ const heartbeatCheck = function () {
 }
 
 window.onbeforeunload = function () {
-    if (wss.close){
+    if (wss.close) {
         wss.close();
     }
     wss = null;
@@ -279,7 +282,7 @@ openDB.onupgradeneeded = (event) => {
     if (!database.objectStoreNames.contains("system")) {
         let os = database.createObjectStore("system", { keyPath: "keyPath" });
         os.add({ keyPath: "state", init: true });
-        os.add({ keyPath: "id", init: true });
+        os.add({ keyPath: "id", init: true, map: db.idmap });
     }
 };
 
@@ -323,8 +326,8 @@ db.replaceId = function (obj) {
             return db.replaceId(item)
         })
     } else if (typeof obj === "object" && obj != null) {
-        if (obj.id && !!db.idMap[obj.id]) {
-            obj.id = db.idMap[obj.id];
+        if (obj.id && db.idMap && db.idMap.c2s && db.idMap.c2s[obj.id]) {
+            obj.id = db.idMap.c2s[obj.id];
             if (obj.need_id) {
                 obj.need_id = false;
             }
@@ -345,14 +348,14 @@ function replaceId(obj) {
             return replaceId(item)
         })
     } else if (typeof obj === "object" && obj != null) {
-        if (obj.id && db.idMap[obj.id]) {
-            obj.id = db.idMap[obj.id];
+        if (obj.id && db.idMap && db.idMap.c2s && db.idMap.c2s[obj.id]) {
+            obj.id = db.idMap.c2s[obj.id];
             if (obj.need_id) {
                 obj.need_id = false;
             }
         }
         if (obj.mapId) {
-            obj[obj.mapId] = db.idMap[obj[obj.mapId]] || obj[obj.mapId];
+            obj[obj.mapId] = db.idMap.c2s[obj[obj.mapId]] || obj[obj.mapId];
             obj.mapId = false;
         }
         Object.keys(obj).forEach(key => {
@@ -365,8 +368,13 @@ function replaceId(obj) {
 // 清理idMap
 db.clearIdMap = function () {
     for (var i = 0; i < db.idClear.length; i++) {
-        delete db.idMap[db.idClear[i]]
+        delete db.idMap.c2s[db.idClear[i]]
     }
+    db.idMap.s2c = {};
+    Object.keys(db.idMap.c2s).map((item) => {
+        db.idMap.s2c[db.idMap.c2s[item]] = item;
+        return item;
+    })
 }
 
 export default db;
