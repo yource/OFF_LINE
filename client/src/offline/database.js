@@ -2,80 +2,104 @@
  * indexedDB的操作
  * 
  **/
-import initWebsocket from './onlineCheck'
 
 let db = {
     database: null, //数据库对象
-    idMap: { //id对应关系：本地ID-服务端ID & 服务端ID-本地ID
-        c2s: {},
-        s2c: {}
+    idMap: { //id对应关系
+        c2s: {}, //本地ID-服务端ID
+        s2c: {}  //服务端ID- 本地ID
     },
-    idClear: [] //保存已同步的id，用于删除多余数据
+    idClear: [], //记录已同步的id，用于删除多余数据
+    executing: false
 };
 
-window.onbeforeunload = function() {
-    if (db.database) {
-        db.database.close();
-    }
-}
+const databaseReady = document.createEvent('HTMLEvents');
+databaseReady.initEvent('databaseReady', false, false);
 
 // 初始化indexedDB数据库
-db.init = function() {
-	const databaseReady = document.createEvent('HTMLEvents');
-	databaseReady.initEvent('databaseReady', false, false);
-
+db.init = function (startHeartbeat) {
     let openDB = window.indexedDB.open("menusifu");
 
     openDB.onsuccess = (event) => {
         db.database = event.target.result;
-        window.dispatchEvent(databaseReady);
-        initWebsocket();
+        var getRequest = db.database.transaction(['idMap'], 'readwrite').objectStore('idMap').get("map");
+        getRequest.onsuccess = function () {
+            db.idMap = getRequest.result.map;
+            window.dispatchEvent(databaseReady);
+            startHeartbeat();
+        }
     };
 
     openDB.onupgradeneeded = (event) => {
         db.database = event.target.result;
         // 新建log表，记录离线时的request
-        if (!database.objectStoreNames.contains("log")) {
+        if (!db.database.objectStoreNames.contains("log")) {
             db.database.createObjectStore("log", { autoIncrement: true });
         }
-        // 新建state表，记录全局和组件内的state，以及前后端id对应关系
-        if (!database.objectStoreNames.contains("state")) {
+        // 新建state表，记录全局和组件内的state
+        if (!db.database.objectStoreNames.contains("state")) {
             let os = db.database.createObjectStore("state", { keyPath: "keyPath" });
-            os.add({ keyPath: "globalState", init: true, data:{} });
-            os.add({ keyPath: "idMap", init: true, map: db.idmap });
+            os.add({ keyPath: "globalState", init: true, data: {} });
+        }
+        // 新建idMap表，记录前后端id对应关系
+        if (!db.database.objectStoreNames.contains("idMap")) {
+            let os = db.database.createObjectStore("idMap", { keyPath: "keyPath" });
+            os.add({ keyPath: "map", init: true, map: db.idmap });
         }
     };
 
-    openDB.onerror = function(event) {
-        console.log('数据库打开失败');
+    openDB.onerror = function (event) {
+        console.log('Fail to open indexedDB');
     };
 }
 
 // 记录失败的ajax请求
-db.log = function(config) {
+db.log = function (config) {
     this.database.transaction(['log'], 'readwrite').objectStore('log').add(config);
 }
 
-// 保存全局state
-db.saveState = function(stateName,state) {
-    this.database.transaction(['state'], 'readwrite').objectStore('state').put({
-        state,
-        keyPath: stateName,
-        init: false
-    });
+// 保存state
+db.saveState = function (stateName, state) {
+    var saveData = {
+        state: db.replaceId(state),
+        keyPath: stateName
+    }
+    var os = this.database.transaction(['state'], 'readwrite').objectStore('state');
+
+    var saveRequest = os.put(saveData);
+    saveRequest.onerror = function () {
+        os.add(saveData)
+    }
+}
+
+// 读取state
+db.getState = function (stateName = 'globalState') {
+    return new Promise(function (resolve, reject) {
+        var getRequest = this.database.transaction(['state'], 'readwrite').objectStore('state').get(stateName);
+        getRequest.onsuccess = function (e) {
+            if (getRequest.result) {
+                resolve(getRequest.result.state);
+            } else {
+                reject(e);
+            }
+        }
+        getRequest.onerror = function (e) {
+            reject(e);
+        }
+    })
 }
 
 // 保存idMap
-db.saveIdMap = function(clientId) {
-    this.database.transaction(['system'], 'readwrite').objectStore('system').put({
-        keyPath: "id",
+db.saveIdMap = function (clientId) {
+    this.database.transaction(['idMap'], 'readwrite').objectStore('idMap').put({
+        keyPath: "map",
         map: db.idMap,
         init: false
     })
 }
 
-// 替换id
-db.replaceId = function(obj) {
+// 替换state里的本地id为服务端id
+db.replaceId = function (obj) {
     if (obj instanceof Array === true) {
         return obj.map(item => {
             return db.replaceId(item)
@@ -97,8 +121,8 @@ db.replaceId = function(obj) {
     }
 }
 
-// 清理idMap
-db.clearIdMap = function() {
+// 清理idMap数据
+db.clearIdMap = function () {
     for (var i = 0; i < db.idClear.length; i++) {
         delete db.idMap.c2s[db.idClear[i]]
     }
@@ -109,10 +133,12 @@ db.clearIdMap = function() {
     })
 }
 
-db.syncRequest = function(requestFunc){
-	var readLog = db.database.transaction(['log']).objectStore('log');
+// 读取request log，并执行request
+db.executeRequest = function (ajax) {
+    this.executing = true;
+    var readLog = db.database.transaction(['log']).objectStore('log');
     var logger = [];
-    readLog.openCursor().onsuccess = function(event) {
+    readLog.openCursor().onsuccess = function (event) {
         let cursor = event.target.result;
         if (cursor) {
             let config = JSON.parse(cursor.value);
@@ -121,12 +147,13 @@ db.syncRequest = function(requestFunc){
             cursor.continue();
         } else {
             if (logger.length > 0) {
-                syncRequest(logger, logger.length - 1,requestFunc)
+                executeRequest(logger, logger.length - 1, ajax)
             }
         }
     };
 }
-function syncRequest(arr, idx,requestFunc) {
+
+function executeRequest(arr, idx, ajax) {
     var config = arr[idx];
     if (config.cancelToken) {
         delete config.cancelToken;
@@ -145,7 +172,7 @@ function syncRequest(arr, idx,requestFunc) {
         cids = getClientID(config.param, [], []);
     }
 
-    requestFunc(config).then((response) => {
+    ajax(config).then((response) => {
         //同步完成，删除log记录
         db.database.transaction(['log'], 'readwrite').objectStore('log').delete(arr[idx].indexedKeyPath);
         if (cids.length > 0) {
@@ -157,7 +184,7 @@ function syncRequest(arr, idx,requestFunc) {
                     };
                     item.sid = sid.id;
                 } else {
-                    item.sid = sid.id
+                    item.sid = sid.id;
                 }
                 return item;
             })
@@ -170,10 +197,10 @@ function syncRequest(arr, idx,requestFunc) {
         // 进行下一个request同步
         if (idx > 0) {
             setTimeout(() => {
-                syncRequest(arr, idx - 1,requestFunc);
+                executeRequest(arr, idx - 1, ajax);
             }, 10)
         } else {
-            console.log("request log 同步完成")
+            db.executing = false;
         }
     })
 }
@@ -218,6 +245,14 @@ function replaceId(obj) {
             replaceId(obj[key])
         })
         return obj;
+    }
+}
+
+window.onbeforeunload = function () {
+    if (db.database) {
+        // 检查所有state里面的id，清理idMaP
+
+        db.database.close();
     }
 }
 

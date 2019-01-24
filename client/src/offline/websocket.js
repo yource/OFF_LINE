@@ -5,25 +5,32 @@
 
 import './storage';
 
-let wss = null;
-let heartbeat;
-let heartbeatResponseCheck;
-const heartbeatTime = 1000; //心跳检测的事件间隔
-const reconnectTime = 2000; //尝试重连的时间间隔
+let ws = {
+    wss: null,
+    heartbeatTime: 1000, //心跳检测的事件间隔
+    reconnectTime: 2000, //尝试重连的时间间隔
+    websocketUrl: 'ws://localhost:8888'
+    // websocketUrl: 'ws://192.168.1.141:8080/cloudmenu/websocket/admin'
+}
+
 let count = 0;
 let msgCount = 0;
-const initWebsocket = () => {
-    if (!window.navigator.onLine) {
-        return;
-    }
-    wss = new WebSocket(websocketUrl);
-    wss.onopen = () => {
+let heartbeat = null;  //发送心跳的定时器
+let heartbeatResponseCheck = null; //检测心跳返回的定时器
+ws.initWebsocket = function (config) {
+    if (!window.navigator.onLine) return;
+    if (config.heartbeatTime) this.heartbeatTime = config.heartbeatTime;
+    if (config.reconnectTime) this.reconnectTime = config.reconnectTime;
+    if (config.websocketUrl) this.websocketUrl = config.websocketUrl;
+
+    this.wss = new WebSocket(this.websocketUrl);
+    this.wss.onopen = () => {
         if (window.storage.getItem("networkStatus") !== "online") {
             window.dispatchEvent(lineOn)
         }
         count++;
         heartbeatCheck();
-        wss.onmessage = (msg) => {
+        this.wss.onmessage = (msg) => {
             msgCount++;
             if (heartbeat) {
                 window.clearTimeout(heartbeat);
@@ -35,20 +42,20 @@ const initWebsocket = () => {
             }
             heartbeatCheck();
         }
-        wss.onclose = () => {
+        this.wss.onclose = () => {
             hanldeWebscoketError()
         }
     }
-    wss.onerror = () => {
-        if (wss.onclose) {
-            wss.close();
+    this.wss.onerror = () => {
+        if (this.wss.onclose) {
+            this.wss.close();
         } else {
             hanldeWebscoketError()
         }
     }
 }
 
-const hanldeWebscoketError = function() {
+const hanldeWebscoketError = function () {
     count = 0;
     msgCount = 0;
     if (heartbeat) {
@@ -62,13 +69,13 @@ const hanldeWebscoketError = function() {
     if (window.storage.getItem("networkStatus") !== "offline") {
         window.dispatchEvent(lineOff)
     }
-    wss = null;
+    ws.wss = null;
     setTimeout(() => {
-        initWebsocket();
-    }, reconnectTime)
+        ws.initWebsocket();
+    }, ws.reconnectTime)
 }
 
-const heartbeatCheck = function() {
+const heartbeatCheck = function () {
     if (heartbeat) {
         window.clearTimeout(heartbeat)
         heartbeat = null;
@@ -79,25 +86,25 @@ const heartbeatCheck = function() {
     }
 
     heartbeat = setTimeout(() => {
-        if (!wss || !wss.close) return;
+        if (!ws.wss || !ws.wss.close) return;
         count++;
-        wss.send(count);
+        ws.wss.send(count);
         heartbeatResponseCheck = setTimeout(() => {
-            if (count - msgCount > 0 && wss) {
+            if (count - msgCount > 0 && ws.wss) {
                 if (window.storage.getItem("networkStatus") !== "offline") {
                     window.dispatchEvent(lineOff)
                 }
-                wss.close()
+                ws.wss.close()
             }
-        }, heartbeatTime);
-    }, heartbeatTime);
+        }, ws.heartbeatTime);
+    }, ws.heartbeatTime);
 }
 
-window.onbeforeunload = function() {
-    if (wss.close) {
-        wss.close();
+window.onbeforeunload = function () {
+    if (ws.wss.close) {
+        ws.wss.close();
     }
-    wss = null;
+    ws.wss = null;
 }
 
 // 自定义line事件
@@ -116,33 +123,23 @@ if (window.navigator.onLine) {
 }
 
 // 监听html5的line事件
-window.addEventListener("offline", function() {
+window.addEventListener("offline", function () {
     if (window.storage.getItem("networkStatus") !== "offline") {
         window.dispatchEvent(lineOff);
     }
-    if (!!wss) {
-        wss.close();
-        wss = null;
+    if (!!ws.wss) {
+        ws.wss.close();
+        ws.wss = null;
     }
 });
-window.addEventListener("online", function() {
+window.addEventListener("online", function () {
     if (window.storage.getItem("networkStatus") !== "online") {
-        if (!!wss && !!wss.close) {
-            wss.close();
+        if (!!ws.wss && !!ws.wss.close) {
+            ws.wss.close();
         } else {
-            initWebsocket();
+            ws.initWebsocket();
         }
     }
 });
 
-// 监听自定义的line事件
-window.addEventListener("lineOn", () => {
-    console.log("== online ==")
-    window.storage.setItem("networkStatus", "online");
-})
-window.addEventListener("lineOff", () => {
-    console.log("== offline ==")
-    window.storage.setItem("networkStatus", "offline");
-})
-
-export default initWebsocket;
+export default ws;
